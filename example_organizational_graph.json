@@ -1,0 +1,168 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "ceo_001",
+        "name": "Sarah Williams",
+        "department": "Executive",
+        "title": "Chief Executive Officer",
+        "group": "leadership"
+      }
+    },
+    {
+      "data": {
+        "id": "eng_001",
+        "name": "Alex Rodriguez",
+        "department": "Engineering",
+        "title": "VP Engineering",
+        "group": "leadership"
+      }
+    },
+    {
+      "data": {
+        "id": "eng_002",
+        "name": "Emily Chen",
+        "department": "Engineering",
+        "title": "Senior Software Engineer",
+        "group": "backend"
+      }
+    },
+    {
+      "data": {
+        "id": "eng_003",
+        "name": "Michael Thompson",
+        "department": "Engineering",
+        "title": "Frontend Developer",
+        "group": "frontend"
+      }
+    },
+    {
+      "data": {
+        "id": "mkt_001",
+        "name": "Jessica Parker",
+        "department": "Marketing",
+        "title": "Marketing Director",
+        "group": "leadership"
+      }
+    },
+    {
+      "data": {
+        "id": "mkt_002",
+        "name": "David Kim",
+        "department": "Marketing",
+        "title": "Content Manager",
+        "group": "content"
+      }
+    },
+    {
+      "data": {
+        "id": "sales_001",
+        "name": "Robert Johnson",
+        "department": "Sales",
+        "title": "Sales Manager",
+        "group": "leadership"
+      }
+    },
+    {
+      "data": {
+        "id": "sales_002",
+        "name": "Lisa Davis",
+        "department": "Sales",
+        "title": "Account Executive",
+        "group": "enterprise"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "edge_001",
+        "source": "ceo_001",
+        "target": "eng_001",
+        "weight": 0.9,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_002",
+        "source": "ceo_001",
+        "target": "mkt_001",
+        "weight": 0.9,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_003",
+        "source": "ceo_001",
+        "target": "sales_001",
+        "weight": 0.9,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_004",
+        "source": "eng_001",
+        "target": "eng_002",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_005",
+        "source": "eng_001",
+        "target": "eng_003",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_006",
+        "source": "eng_002",
+        "target": "eng_003",
+        "weight": 0.7,
+        "type": "collaboration"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_007",
+        "source": "mkt_001",
+        "target": "mkt_002",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_008",
+        "source": "sales_001",
+        "target": "sales_002",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_009",
+        "source": "eng_002",
+        "target": "mkt_002",
+        "weight": 0.4,
+        "type": "cross_functional"
+      }
+    },
+    {
+      "data": {
+        "id": "edge_010",
+        "source": "mkt_001",
+        "target": "sales_001",
+        "weight": 0.6,
+        "type": "collaboration"
+      }
+    }
+  ]
+}
