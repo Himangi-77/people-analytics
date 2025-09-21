@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import cytoscape from 'cytoscape';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import { Send, Upload, Users, Network, BarChart3, MessageSquare } from 'lucide-react';
-import TestUpload from './TestUpload';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
