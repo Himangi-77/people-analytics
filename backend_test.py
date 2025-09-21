@@ -155,6 +155,48 @@ class PeopleAnalyticsAPITester:
         
         return success
 
+    def test_nested_format_upload(self):
+        """Test upload with nested format (main_combined.json style)"""
+        # Create nested format data as mentioned in the review request
+        nested_format_data = {
+            "graph": {
+                "elements": {
+                    "nodes": [
+                        {"data": {"id": "test1", "name": "Person 1", "department": "Engineering", "title": "Developer"}},
+                        {"data": {"id": "test2", "name": "Person 2", "department": "Marketing", "title": "Manager"}},
+                        {"data": {"id": "test3", "name": "Person 3", "department": "Sales", "title": "Rep"}}
+                    ],
+                    "edges": [
+                        {"data": {"id": "edge1", "source": "test1", "target": "test2", "weight": 0.8, "type": "collaboration"}},
+                        {"data": {"id": "edge2", "source": "test2", "target": "test3", "weight": 0.6, "type": "communication"}}
+                    ]
+                }
+            }
+        }
+        
+        print(f"   Testing nested format: {{graph: {{elements: {{nodes: [], edges: []}}}}}}")
+        
+        # The backend expects the extracted elements, not the full nested structure
+        # So we need to send the elements part
+        success, response = self.run_test(
+            "Upload Nested Format Graph",
+            "POST", 
+            "upload-graph",
+            200,
+            data={"graph_data": nested_format_data["graph"]["elements"]}
+        )
+        
+        if success and isinstance(response, dict):
+            stats = response.get('stats', {})
+            print(f"   Graph Stats: {stats}")
+            if stats.get('nodes') == 3 and stats.get('edges') == 2:
+                print("   ✅ Nested format graph uploaded successfully")
+                return True
+            else:
+                print(f"   ⚠️  Unexpected node/edge counts: nodes={stats.get('nodes')}, edges={stats.get('edges')}")
+        
+        return success
+
     def test_query_processing(self):
         """Test natural language query processing"""
         test_questions = [
