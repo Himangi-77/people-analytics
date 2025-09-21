@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "test1",
+        "name": "John Smith",
+        "department": "Engineering",
+        "title": "Senior Developer",
+        "group": "backend"
+      }
+    },
+    {
+      "data": {
+        "id": "test2",
+        "name": "Jane Doe",
+        "department": "Marketing",
+        "title": "Marketing Manager",
+        "group": "content"
+      }
+    },
+    {
+      "data": {
+        "id": "test3",
+        "name": "Mike Johnson",
+        "department": "Sales",
+        "title": "Sales Rep",
+        "group": "enterprise"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "e1",
+        "source": "test1",
+        "target": "test2",
+        "weight": 0.8,
+        "type": "collaboration"
+      }
+    },
+    {
+      "data": {
+        "id": "e2",
+        "source": "test2",
+        "target": "test3",
+        "weight": 0.6,
+        "type": "project"
+      }
+    }
+  ]
+}
