@@ -351,14 +351,13 @@ function Home() {
                 type="file"
                 accept=".json"
                 onChange={handleFileUpload}
-                style={{ display: 'none' }}
+                className="sr-only"
                 id="file-upload"
                 disabled={loading}
               />
-              <button 
-                onClick={() => document.getElementById('file-upload').click()}
-                disabled={loading}
-                className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              <label
+                htmlFor="file-upload"
+                className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
@@ -371,7 +370,7 @@ function Home() {
                     Upload Graph
                   </>
                 )}
-              </button>
+              </label>
             </div>
           </div>
         </div>
