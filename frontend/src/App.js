@@ -302,7 +302,7 @@ function Home() {
         setError('');
         
         // Show success message
-        alert(`Graph uploaded successfully! ${result.stats.nodes} nodes, ${result.stats.edges} edges`);
+        console.log(`Graph uploaded successfully! ${result.stats.nodes} nodes, ${result.stats.edges} edges`);
         
         // Initialize visualization
         initializeGraph(graphData);
