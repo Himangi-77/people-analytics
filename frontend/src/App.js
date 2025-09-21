@@ -354,24 +354,21 @@ function App() {
                 id="file-upload"
                 disabled={loading}
               />
-              <label htmlFor="file-upload">
-                <Button 
-                  variant="outline" 
-                  className={`cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
-                      <span>Uploading...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Graph
-                    </>
-                  )}
-                </Button>
+              <label 
+                htmlFor="file-upload" 
+                className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                    <span>Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Graph
+                  </>
+                )}
               </label>
             </div>
           </div>
