@@ -352,11 +352,25 @@ function App() {
                 onChange={handleFileUpload}
                 className="hidden"
                 id="file-upload"
+                disabled={loading}
               />
               <label htmlFor="file-upload">
-                <Button variant="outline" className="cursor-pointer">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Graph
+                <Button 
+                  variant="outline" 
+                  className={`cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Graph
+                    </>
+                  )}
                 </Button>
               </label>
             </div>
