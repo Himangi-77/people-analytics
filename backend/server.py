@@ -79,11 +79,10 @@ def load_cytoscape_to_networkx(cytoscape_data):
     
     # Add edges
     for edge in edges:
-        edge_data = edge['data']
-        source = edge_data['source']
-        target = edge_data['target']
-        weight = edge_data.get('weight', 1.0)
-        G.add_edge(source, target, weight=weight, **edge_data)
+        edge_data = edge['data'].copy()
+        source = edge_data.pop('source')
+        target = edge_data.pop('target')
+        G.add_edge(source, target, **edge_data)
     
     return G
 
