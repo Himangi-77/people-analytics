@@ -132,15 +132,25 @@ function App() {
   const initializeGraph = (graphData) => {
     if (!graphContainerRef.current) return;
 
+    console.log('Initializing graph with data:', graphData);
+
     // Clear existing graph
     if (cyRef.current) {
       cyRef.current.destroy();
     }
 
+    // Prepare elements for Cytoscape
+    const elements = [
+      ...graphData.nodes,
+      ...graphData.edges
+    ];
+
+    console.log('Elements for Cytoscape:', elements);
+
     // Create new cytoscape instance
     cyRef.current = cytoscape({
       container: graphContainerRef.current,
-      elements: graphData,
+      elements: elements,
       style: [
         {
           selector: 'node',
