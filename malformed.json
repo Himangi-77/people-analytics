@@ -1,0 +1,7 @@
+{
+  "nodes": [
+    {"data": {"id": "test1", "name": "Test Person 1"}
+  ],
+  "edges": [
+    {"data": {"id": "e1", "source": "test1", "target": "test2"}}
+  ]
