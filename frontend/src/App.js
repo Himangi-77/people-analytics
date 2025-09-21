@@ -539,7 +539,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/test-upload" element={<TestUpload />} />
       </Routes>
     </Router>
   );
