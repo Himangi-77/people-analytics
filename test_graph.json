@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {"data": {"id": "test1", "name": "Test Person 1", "department": "Engineering", "title": "Developer"}},
+    {"data": {"id": "test2", "name": "Test Person 2", "department": "Marketing", "title": "Manager"}},
+    {"data": {"id": "test3", "name": "Test Person 3", "department": "Sales", "title": "Representative"}}
+  ],
+  "edges": [
+    {"data": {"id": "e1", "source": "test1", "target": "test2", "weight": 0.8, "type": "collaboration"}},
+    {"data": {"id": "e2", "source": "test2", "target": "test3", "weight": 0.6, "type": "communication"}}
+  ]
+}
