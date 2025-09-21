@@ -265,26 +265,61 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
 
+    console.log('File selected:', file.name, file.type, file.size);
+    setError(''); // Clear any previous errors
+    setLoading(true); // Show loading state
+
     try {
+      // Read the file content
       const text = await file.text();
-      const graphData = JSON.parse(text);
+      console.log('File content read, length:', text.length);
       
+      // Parse JSON
+      const graphData = JSON.parse(text);
+      console.log('JSON parsed successfully:', graphData);
+      
+      // Validate graph structure
+      if (!graphData.nodes || !graphData.edges) {
+        throw new Error('Invalid graph format. Expected JSON with "nodes" and "edges" arrays.');
+      }
+      
+      console.log(`Graph contains ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
+      
+      // Upload to backend
       const response = await fetch(`${API}/upload-graph`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ graph_data: graphData })
       });
 
+      const result = await response.json();
+      console.log('Upload response:', result);
+
       if (response.ok) {
         setGraphUploaded(true);
         setError('');
+        
+        // Show success message
+        alert(`Graph uploaded successfully! ${result.stats.nodes} nodes, ${result.stats.edges} edges`);
+        
+        // Initialize visualization
         initializeGraph(graphData);
         loadGraphStats();
       } else {
-        setError('Failed to upload graph file');
+        setError(`Upload failed: ${result.detail || 'Unknown error'}`);
+        console.error('Upload failed:', result);
       }
     } catch (err) {
-      setError('Invalid JSON file format');
+      console.error('File upload error:', err);
+      if (err.name === 'SyntaxError') {
+        setError('Invalid JSON file format. Please check your file structure.');
+      } else {
+        setError(`Upload error: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+      // Reset the file input so the same file can be uploaded again
+      e.target.value = '';
     }
   };
 
