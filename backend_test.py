@@ -252,6 +252,7 @@ def main():
     # Test sequence
     tests = [
         ("Graph Upload", tester.test_upload_graph),
+        ("Nested Format Upload", tester.test_nested_format_upload),
         ("Graph Data Retrieval", tester.test_get_graph_data),
         ("Graph Statistics", tester.test_get_graph_stats),
         ("Query Processing", tester.test_query_processing)
