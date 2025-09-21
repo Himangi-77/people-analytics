@@ -438,6 +438,40 @@ function App() {
                     ))}
                   </div>
                 </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Graph Upload Format:</h3>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>Upload a JSON file with this structure:</p>
+                    <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
+{`{
+  "nodes": [
+    {
+      "data": {
+        "id": "person_1",
+        "name": "John Doe",
+        "department": "Engineering",
+        "title": "Developer"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "edge_1",
+        "source": "person_1",
+        "target": "person_2",
+        "weight": 0.8,
+        "type": "collaboration"
+      }
+    }
+  ]
+}`}
+                    </pre>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
