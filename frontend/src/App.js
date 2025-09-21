@@ -44,7 +44,7 @@ function App() {
   }, []);
 
   const createSampleGraph = async () => {
-    // Create sample organizational data
+    // Create sample organizational data  
     const sampleGraphData = {
       nodes: [
         { data: { id: '1', name: 'Alice Johnson', department: 'Engineering', title: 'Tech Lead', group: 'backend' } },
@@ -64,43 +64,52 @@ function App() {
         { data: { id: '15', name: 'Olivia Taylor', department: 'Engineering', title: 'Security Engineer', group: 'security' } }
       ],
       edges: [
-        { data: { source: '1', target: '2', weight: 0.8, type: 'collaboration' } },
-        { data: { source: '1', target: '5', weight: 0.6, type: 'technical' } },
-        { data: { source: '1', target: '8', weight: 0.9, type: 'project' } },
-        { data: { source: '2', target: '3', weight: 0.4, type: 'cross-team' } },
-        { data: { source: '3', target: '4', weight: 0.7, type: 'go-to-market' } },
-        { data: { source: '3', target: '6', weight: 0.8, type: 'collaboration' } },
-        { data: { source: '4', target: '7', weight: 0.9, type: 'mentoring' } },
-        { data: { source: '4', target: '10', weight: 0.6, type: 'supervision' } },
-        { data: { source: '5', target: '12', weight: 0.5, type: 'infrastructure' } },
-        { data: { source: '6', target: '9', weight: 0.7, type: 'creative' } },
-        { data: { source: '7', target: '14', weight: 0.8, type: 'customer' } },
-        { data: { source: '8', target: '12', weight: 0.6, type: 'data' } },
-        { data: { source: '9', target: '13', weight: 0.5, type: 'marketing' } },
-        { data: { source: '11', target: '1', weight: 0.4, type: 'hr-support' } },
-        { data: { source: '11', target: '4', weight: 0.5, type: 'hr-support' } },
-        { data: { source: '11', target: '3', weight: 0.3, type: 'hr-support' } },
-        { data: { source: '8', target: '3', weight: 0.6, type: 'product-marketing' } },
-        { data: { source: '15', target: '1', weight: 0.5, type: 'security' } },
-        { data: { source: '15', target: '5', weight: 0.7, type: 'security' } }
+        { data: { id: 'e1', source: '1', target: '2', weight: 0.8, type: 'collaboration' } },
+        { data: { id: 'e2', source: '1', target: '5', weight: 0.6, type: 'technical' } },
+        { data: { id: 'e3', source: '1', target: '8', weight: 0.9, type: 'project' } },
+        { data: { id: 'e4', source: '2', target: '3', weight: 0.4, type: 'cross-team' } },
+        { data: { id: 'e5', source: '3', target: '4', weight: 0.7, type: 'go-to-market' } },
+        { data: { id: 'e6', source: '3', target: '6', weight: 0.8, type: 'collaboration' } },
+        { data: { id: 'e7', source: '4', target: '7', weight: 0.9, type: 'mentoring' } },
+        { data: { id: 'e8', source: '4', target: '10', weight: 0.6, type: 'supervision' } },
+        { data: { id: 'e9', source: '5', target: '12', weight: 0.5, type: 'infrastructure' } },
+        { data: { id: 'e10', source: '6', target: '9', weight: 0.7, type: 'creative' } },
+        { data: { id: 'e11', source: '7', target: '14', weight: 0.8, type: 'customer' } },
+        { data: { id: 'e12', source: '8', target: '12', weight: 0.6, type: 'data' } },
+        { data: { id: 'e13', source: '9', target: '13', weight: 0.5, type: 'marketing' } },
+        { data: { id: 'e14', source: '11', target: '1', weight: 0.4, type: 'hr-support' } },
+        { data: { id: 'e15', source: '11', target: '4', weight: 0.5, type: 'hr-support' } },
+        { data: { id: 'e16', source: '11', target: '3', weight: 0.3, type: 'hr-support' } },
+        { data: { id: 'e17', source: '8', target: '3', weight: 0.6, type: 'product-marketing' } },
+        { data: { id: 'e18', source: '15', target: '1', weight: 0.5, type: 'security' } },
+        { data: { id: 'e19', source: '15', target: '5', weight: 0.7, type: 'security' } }
       ]
     };
 
     try {
+      console.log('Uploading sample graph data...');
+      
       const response = await fetch(`${API}/upload-graph`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ graph_data: sampleGraphData })
       });
 
+      const result = await response.json();
+      console.log('Upload response:', result);
+
       if (response.ok) {
         setGraphUploaded(true);
         setError('');
         
-        // Initialize visualization
-        if (graphContainerRef.current) {
-          initializeGraph(sampleGraphData);
-        }
+        // Initialize visualization with a delay to ensure container is ready
+        setTimeout(() => {
+          if (graphContainerRef.current) {
+            initializeGraph(sampleGraphData);
+          }
+        }, 500);
+      } else {
+        setError(`Failed to upload graph: ${result.detail || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to upload sample graph:', err);
