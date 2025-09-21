@@ -1,0 +1,50 @@
+{
+  "elements": {
+    "nodes": [
+      {
+        "data": {
+          "id": "test1",
+          "name": "Person 1",
+          "department": "Engineering",
+          "title": "Developer"
+        }
+      },
+      {
+        "data": {
+          "id": "test2",
+          "name": "Person 2",
+          "department": "Marketing",
+          "title": "Manager"
+        }
+      },
+      {
+        "data": {
+          "id": "test3",
+          "name": "Person 3",
+          "department": "Sales",
+          "title": "Rep"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "data": {
+          "id": "edge1",
+          "source": "test1",
+          "target": "test2",
+          "weight": 0.8,
+          "type": "collaboration"
+        }
+      },
+      {
+        "data": {
+          "id": "edge2",
+          "source": "test2",
+          "target": "test3",
+          "weight": 0.6,
+          "type": "communication"
+        }
+      }
+    ]
+  }
+}
