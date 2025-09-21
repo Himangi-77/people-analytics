@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    {"data": {"id": "1", "name": "Alice Johnson", "department": "Engineering", "title": "Tech Lead"}},
+    {"data": {"id": "2", "name": "Bob Chen", "department": "Engineering", "title": "Senior Developer"}},
+    {"data": {"id": "3", "name": "Carol Davis", "department": "Marketing", "title": "Marketing Manager"}},
+    {"data": {"id": "4", "name": "David Wilson", "department": "Sales", "title": "Sales Director"}},
+    {"data": {"id": "5", "name": "Emily Brown", "department": "Engineering", "title": "DevOps Engineer"}}
+  ],
+  "edges": [
+    {"data": {"id": "e1", "source": "1", "target": "2", "weight": 0.8, "type": "collaboration"}},
+    {"data": {"id": "e2", "source": "1", "target": "5", "weight": 0.6, "type": "technical"}},
+    {"data": {"id": "e3", "source": "2", "target": "3", "weight": 0.4, "type": "cross-team"}},
+    {"data": {"id": "e4", "source": "3", "target": "4", "weight": 0.7, "type": "go-to-market"}}
+  ]
+}

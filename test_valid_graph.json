@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    {"data": {"id": "test1", "name": "Test Person 1", "department": "Engineering"}},
+    {"data": {"id": "test2", "name": "Test Person 2", "department": "Marketing"}}
+  ],
+  "edges": [
+    {"data": {"id": "e1", "source": "test1", "target": "test2", "weight": 0.5}}
+  ]
+}
