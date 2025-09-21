@@ -276,12 +276,29 @@ function Home() {
       console.log('File content read, length:', text.length);
       
       // Parse JSON
-      const graphData = JSON.parse(text);
-      console.log('JSON parsed successfully:', graphData);
+      const rawData = JSON.parse(text);
+      console.log('JSON parsed successfully:', rawData);
       
-      // Validate graph structure
-      if (!graphData.nodes || !graphData.edges) {
-        throw new Error('Invalid graph format. Expected JSON with "nodes" and "edges" arrays.');
+      // Handle different graph formats
+      let graphData;
+      
+      // Check if it's the nested format: {graph: {elements: {nodes: [], edges: []}}}
+      if (rawData.graph && rawData.graph.elements && rawData.graph.elements.nodes && rawData.graph.elements.edges) {
+        console.log('Detected nested graph format (main_combined.json style)');
+        graphData = rawData.graph.elements;
+      }
+      // Check if it's the simple format: {nodes: [], edges: []}
+      else if (rawData.nodes && rawData.edges) {
+        console.log('Detected simple graph format');
+        graphData = rawData;
+      }
+      // Check if it's already in elements format: {nodes: [], edges: []}
+      else if (rawData.elements && rawData.elements.nodes && rawData.elements.edges) {
+        console.log('Detected elements format');
+        graphData = rawData.elements;
+      }
+      else {
+        throw new Error('Invalid graph format. Expected JSON with one of these structures:\n1. {nodes: [], edges: []}\n2. {graph: {elements: {nodes: [], edges: []}}}\n3. {elements: {nodes: [], edges: []}}');
       }
       
       console.log(`Graph contains ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
