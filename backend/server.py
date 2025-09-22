@@ -195,11 +195,62 @@ async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
     """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
     try:
         # Initialize LLM chat
-        chat = LlmChat(
-            api_key=os.environ.get('EMERGENT_LLM_KEY'),
-            session_id=f"graph_analysis_{uuid.uuid4()}",
-            system_message="""You are an expert organizational network analyst specializing in social networks, collaboration patterns, and organizational structures.
+        # Detect question category for specialized analysis
+        question_lower = question.lower()
+        analysis_focus = "general"
+        
+        if any(term in question_lower for term in ['leader', 'influence', 'manager', 'message']):
+            analysis_focus = "leadership"
+        elif any(term in question_lower for term in ['silo', 'collaboration', 'department', 'team']):
+            analysis_focus = "collaboration"
+        elif any(term in question_lower for term in ['innovation', 'knowledge', 'r&d', 'idea', 'bridge']):
+            analysis_focus = "innovation"
+        elif any(term in question_lower for term in ['women', 'minority', 'diversity', 'equity', 'inclusion']):
+            analysis_focus = "diversity"
+        elif any(term in question_lower for term in ['risk', 'succession', 'vulnerable', 'critical', 'disrupted']):
+            analysis_focus = "risk"
 
+        # Specialized system messages based on analysis focus
+        system_messages = {
+            "leadership": """You are an expert in organizational leadership and influence analysis. Focus on:
+            - Identifying formal vs informal leaders
+            - Measuring influence patterns and reach
+            - Analyzing communication cascades and message flow
+            - Assessing leadership diversity and accessibility
+            - Recommending leadership development strategies""",
+            
+            "collaboration": """You are an expert in organizational collaboration and silo analysis. Focus on:
+            - Detecting departmental silos and isolation
+            - Measuring cross-functional collaboration strength
+            - Identifying duplication and inefficiencies
+            - Analyzing collaboration patterns and bottlenecks
+            - Recommending structural improvements""",
+            
+            "innovation": """You are an expert in innovation networks and knowledge flow analysis. Focus on:
+            - Mapping knowledge transfer pathways
+            - Identifying innovation bridges and connectors
+            - Analyzing cross-functional idea exchange
+            - Measuring knowledge concentration and distribution
+            - Recommending innovation network optimization""",
+            
+            "diversity": """You are an expert in diversity, equity, and inclusion network analysis. Focus on:
+            - Analyzing representation in central network positions
+            - Measuring equity in access to leadership and opportunities
+            - Identifying underconnected groups needing support
+            - Assessing inclusive leadership patterns
+            - Recommending DEI network interventions""",
+            
+            "risk": """You are an expert in organizational risk and succession analysis. Focus on:
+            - Identifying critical single points of failure
+            - Assessing network vulnerability and resilience
+            - Mapping succession readiness and pathways
+            - Analyzing dependency risks and mitigation strategies
+            - Recommending risk reduction and succession planning""",
+            
+            "general": """You are an expert organizational network analyst specializing in social networks, collaboration patterns, and organizational structures."""
+        }
+
+        base_formatting = """
 FORMATTING INSTRUCTIONS:
 - Structure your response with clear sections and headers
 - Use paragraphs to separate different insights
@@ -207,13 +258,13 @@ FORMATTING INSTRUCTIONS:
 - Provide actionable recommendations
 - Use clear, professional language
 - Organize insights logically from high-level to specific
+- Bold key findings and recommendations
+- Use bullet points for lists and action items"""
 
-ANALYSIS FOCUS:
-- Identify key influencers and connectors
-- Highlight potential communication bottlenecks
-- Suggest improvements for collaboration
-- Point out organizational structure insights
-- Provide practical next steps"""
+        chat = LlmChat(
+            api_key=os.environ.get('EMERGENT_LLM_KEY'),
+            session_id=f"graph_analysis_{uuid.uuid4()}",
+            system_message=system_messages.get(analysis_focus, system_messages["general"]) + base_formatting
         ).with_model("openai", "gpt-4o")
         
         # Prepare enhanced analysis context
