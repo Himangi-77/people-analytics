@@ -5,7 +5,7 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 import fcose from 'cytoscape-fcose';
 import cola from 'cytoscape-cola';
 import dagre from 'cytoscape-dagre';
-import { Send, Upload, Users, Network, BarChart3, MessageSquare, Palette, Maximize2, Layout } from 'lucide-react';
+import { Send, Upload, Users, Network, BarChart3, MessageSquare, Palette, Maximize2, Layout, Tag } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
