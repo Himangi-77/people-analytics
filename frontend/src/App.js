@@ -41,6 +41,30 @@ function Home() {
     "Who are the most central connectors in hybrid work settings, and are they distributed evenly or concentrated?"
   ];
 
+  // Node sizing options
+  const sizingOptions = [
+    { value: 'degree', label: 'Degree (Connections)' },
+    { value: 'betweenness', label: 'Betweenness Centrality' },
+    { value: 'gate_keeper_score', label: 'Gatekeeper Score' },
+    { value: 'go_to_score', label: 'Go-To Score' },
+    { value: 'social_hubs_score', label: 'Social Hubs Score' },
+    { value: 'tenure_year', label: 'Tenure (Years)' },
+    { value: 'rating', label: 'Performance Rating' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' }
+  ];
+
+  // Node coloring options
+  const coloringOptions = [
+    { value: 'department', label: 'Department' },
+    { value: 'gender', label: 'Gender' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' },
+    { value: 'tenure_status', label: 'Tenure Status' },
+    { value: 'group_name1', label: 'Group 1' },
+    { value: 'group_name2', label: 'Group 2' },
+    { value: 'location', label: 'Location' },
+    { value: 'rating', label: 'Performance Rating' }
+  ];
+
   // Initialize with sample data
   useEffect(() => {
     createSampleGraph();
