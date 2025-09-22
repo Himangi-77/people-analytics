@@ -70,7 +70,7 @@ your-repo/
    MONGO_URL=mongodb+srv://username:password@cluster.mongodb.net/people_analytics
    DB_NAME=people_analytics
    CORS_ORIGINS=*
-   EMERGENT_LLM_KEY=sk-your-openai-api-key
+   OPENAI_API_KEY=sk-your-openai-api-key
    ```
 
 8. **Create Web Service** → Wait for deployment (~5 minutes)
