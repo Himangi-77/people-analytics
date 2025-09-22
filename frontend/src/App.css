@@ -221,3 +221,30 @@ textarea:focus {
   z-index: 1000;
   max-width: 200px;
 }
+
+/* Line clamp utility for text truncation */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for sample questions */
+.space-y-2::-webkit-scrollbar {
+  width: 4px;
+}
+
+.space-y-2::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.space-y-2::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.space-y-2::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
