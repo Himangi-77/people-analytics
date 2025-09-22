@@ -449,6 +449,40 @@ function Home() {
     setQuestion(sampleQ);
   };
 
+  const formatAnalysisText = (text) => {
+    if (!text) return text;
+    
+    // Split into paragraphs
+    const paragraphs = text.split('\n\n');
+    
+    return paragraphs.map((paragraph, index) => {
+      if (!paragraph.trim()) return null;
+      
+      // Format bold text **text**
+      let formatted = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Format italic text *text*
+      formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      // Format bullet points
+      if (formatted.startsWith('- ') || formatted.startsWith('• ')) {
+        formatted = `<li className="ml-4">${formatted.substring(2)}</li>`;
+        return <ul key={index} className="list-disc ml-4 mb-2" dangerouslySetInnerHTML={{__html: formatted}} />;
+      }
+      
+      // Check if it's a header (ends with colon or starts with strong tag)
+      const isHeader = formatted.includes('<strong>') && (formatted.endsWith(':</strong>') || formatted.endsWith('<strong>'));
+      
+      return (
+        <div 
+          key={index} 
+          className={`mb-3 ${isHeader ? 'text-base font-semibold text-gray-900' : 'text-sm text-gray-700 leading-relaxed'}`}
+          dangerouslySetInnerHTML={{__html: formatted}}
+        />
+      );
+    }).filter(Boolean);
+  };
+
   const updateGraphVisualization = () => {
     if (cyRef.current) {
       cyRef.current.style().selector('node').style({
