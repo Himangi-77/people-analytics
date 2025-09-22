@@ -40,14 +40,58 @@ function Home() {
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
 
-  // Sample questions
-  const sampleQuestions = [
-    "Who are the informal leaders in our organization, and how do they influence decision-making?",
-    "Which teams are most at risk of becoming silos, and what connections should we strengthen?",
-    "Where are the communication bottlenecks that could slow down strategy execution?",
-    "How effectively is knowledge flowing between departments like Sales, Engineering, and Marketing?",
-    "Who are the most central connectors in hybrid work settings, and are they distributed evenly or concentrated?"
-  ];
+  // Organized sample questions by category
+  const questionCategories = {
+    'leadership': {
+      title: 'Leadership & Influence',
+      icon: '👑',
+      questions: [
+        "Who are the hidden influencers we should recognize or engage in change initiatives?",
+        "Which managers have the most diverse connections across the organization?",
+        "Are leadership messages reaching the whole network or getting stuck in pockets?",
+        "Who are the informal leaders in our organization, and how do they influence decision-making?"
+      ]
+    },
+    'collaboration': {
+      title: 'Collaboration & Silos',
+      icon: '🤝',
+      questions: [
+        "Which departments are working in silos and need stronger connections?",
+        "Where do we see duplication of work due to weak cross-team ties?",
+        "Which functions collaborate most frequently, and which are isolated?",
+        "Which teams are most at risk of becoming silos, and what connections should we strengthen?"
+      ]
+    },
+    'innovation': {
+      title: 'Innovation & Knowledge Flow',
+      icon: '💡',
+      questions: [
+        "Who are the bridges connecting R&D with Sales and Marketing?",
+        "Which teams have the most cross-functional idea exchanges?",
+        "Where is knowledge concentrated, and how can we spread it more evenly?",
+        "How effectively is knowledge flowing between departments like Sales, Engineering, and Marketing?"
+      ]
+    },
+    'diversity': {
+      title: 'Diversity, Equity & Inclusion',
+      icon: '🌍',
+      questions: [
+        "Are women and minority groups equally central in the network?",
+        "Do we see equitable access to leadership across different employee groups?",
+        "Which underrepresented groups are underconnected and need stronger sponsorship?"
+      ]
+    },
+    'risk': {
+      title: 'Risk & Succession',
+      icon: '⚠️',
+      questions: [
+        "If this critical person left tomorrow, what part of the network would be disrupted?",
+        "Who are the successors already positioned to step into key connector roles?",
+        "Which teams are vulnerable because they rely on just one or two connectors?",
+        "Where are the communication bottlenecks that could slow down strategy execution?"
+      ]
+    }
+  };
 
   // Node sizing options
   const sizingOptions = [
