@@ -417,7 +417,12 @@ def format_analysis_response(response: str) -> str:
 async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
     """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
     try:
-        # Initialize LLM chat
+        # Initialize OpenAI client
+        openai.api_key = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('OPENAI_API_KEY')
+        
+        if not openai.api_key:
+            raise ValueError("OpenAI API key not found. Set EMERGENT_LLM_KEY or OPENAI_API_KEY environment variable.")
+        
         # Detect question category for specialized analysis
         question_lower = question.lower()
         analysis_focus = "general"
@@ -484,12 +489,6 @@ FORMATTING INSTRUCTIONS:
 - Bold key findings and recommendations
 - Use bullet points for lists and action items"""
 
-        chat = LlmChat(
-            api_key=os.environ.get('EMERGENT_LLM_KEY'),
-            session_id=f"graph_analysis_{uuid.uuid4()}",
-            system_message=system_messages.get(analysis_focus, system_messages["general"]) + base_formatting
-        ).with_model("openai", "gpt-4o")
-        
         # Prepare enhanced analysis context with ranked data
         influencers_text = ""
         connectors_text = ""
@@ -541,12 +540,25 @@ FORMATTING INSTRUCTIONS:
 
         Please provide a comprehensive analysis addressing this question. Use the specific ranked lists above, including names, scores, and positions. Focus on actionable insights based on the statistical outlier analysis.
         """
+
+        # Create the system message based on question type
+        system_message = system_messages.get(analysis_focus, system_messages["general"]) + base_formatting
         
-        user_message = UserMessage(text=analysis_text)
-        response = await chat.send_message(user_message)
+        # Make API call to OpenAI
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Use gpt-4 or gpt-3.5-turbo based on availability
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": analysis_text}
+            ],
+            max_tokens=2000,
+            temperature=0.7
+        )
+        
+        ai_response = response.choices[0].message.content
         
         # Format the response for better presentation
-        formatted_response = format_analysis_response(response)
+        formatted_response = format_analysis_response(ai_response)
         
         return formatted_response
         
