@@ -942,6 +942,7 @@ function Home() {
                     <div>• Layout: {layoutOptions.find(o => o.value === graphLayout)?.label}</div>
                     <div>• Node size: {sizingOptions.find(o => o.value === nodeSizeBy)?.label}</div>
                     <div>• Node color: {coloringOptions.find(o => o.value === nodeColorBy)?.label}</div>
+                    <div>• Node labels: {labelOptions.find(o => o.value === nodeLabelBy)?.label}</div>
                     <div>• Click nodes for details</div>
                   </div>
                 </div>
