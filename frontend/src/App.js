@@ -36,6 +36,7 @@ function Home() {
   const [nodeColorBy, setNodeColorBy] = useState('department');
   const [graphLayout, setGraphLayout] = useState('cose-bilkent');
   const [nodeLabelBy, setNodeLabelBy] = useState('full_name');
+  const [selectedCategory, setSelectedCategory] = useState('leadership');
   
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
