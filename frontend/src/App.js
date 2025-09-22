@@ -598,6 +598,85 @@ function Home() {
               </CardContent>
             </Card>
 
+            {/* Graph Controls */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Palette className="h-5 w-5" />
+                  <span>Graph Controls</span>
+                </CardTitle>
+                <CardDescription>
+                  Customize node appearance based on organizational metrics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Maximize2 className="h-4 w-4 inline mr-1" />
+                    Size Nodes By:
+                  </label>
+                  <Select value={nodeSizeBy} onValueChange={(value) => {
+                    setNodeSizeBy(value);
+                    // Re-render graph with new sizing
+                    if (cyRef.current) {
+                      cyRef.current.style().selector('node').style({
+                        'width': (node) => getNodeSize(node, value),
+                        'height': (node) => getNodeSize(node, value)
+                      }).update();
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sizingOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Palette className="h-4 w-4 inline mr-1" />
+                    Color Nodes By:
+                  </label>
+                  <Select value={nodeColorBy} onValueChange={(value) => {
+                    setNodeColorBy(value);
+                    // Re-render graph with new coloring
+                    if (cyRef.current) {
+                      cyRef.current.style().selector('node').style({
+                        'background-color': (node) => getNodeColor(node, value)
+                      }).update();
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {coloringOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Legend */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <h4 className="text-xs font-semibold text-gray-700 mb-2">Legend:</h4>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div>• Node size reflects {sizingOptions.find(o => o.value === nodeSizeBy)?.label}</div>
+                    <div>• Node color reflects {coloringOptions.find(o => o.value === nodeColorBy)?.label}</div>
+                    <div>• Click nodes for details</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Results Panel */}
             {response && (
               <Card>
