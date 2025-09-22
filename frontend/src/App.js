@@ -991,10 +991,10 @@ function Home() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">AI Insights:</h4>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {response.answer}
-                    </p>
+                    <h4 className="font-medium text-gray-900 mb-3">AI Insights:</h4>
+                    <div className="prose prose-sm max-w-none">
+                      {formatAnalysisText(response.answer)}
+                    </div>
                   </div>
                   
                   <Separator />
