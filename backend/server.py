@@ -141,6 +141,106 @@ def get_department_connections(G):
     
     return dept_connections, dept_internal
 
+def analyze_leadership_influence(G, centrality_measures):
+    """Analyze leadership and influence patterns"""
+    leadership_analysis = {}
+    
+    # Identify formal vs informal leaders
+    formal_leaders = []
+    informal_leaders = []
+    
+    for node, data in G.nodes(data=True):
+        title = data.get('designation', '').lower()
+        hierarchy = data.get('hierarchy_level', 5)
+        betweenness = centrality_measures['betweenness'].get(node, 0)
+        
+        # Formal leaders (by title/hierarchy)
+        if any(term in title for term in ['manager', 'director', 'head', 'lead', 'vp', 'ceo']) or hierarchy <= 3:
+            formal_leaders.append((node, betweenness, data))
+        
+        # Informal leaders (high centrality but not formal title)
+        elif betweenness > 0.05:  # Threshold for high influence
+            informal_leaders.append((node, betweenness, data))
+    
+    leadership_analysis['formal_leaders'] = sorted(formal_leaders, key=lambda x: x[1], reverse=True)[:10]
+    leadership_analysis['informal_leaders'] = sorted(informal_leaders, key=lambda x: x[1], reverse=True)[:10]
+    
+    return leadership_analysis
+
+def analyze_diversity_equity(G, centrality_measures):
+    """Analyze diversity and equity in network positions"""
+    diversity_analysis = {}
+    
+    # Analyze by gender
+    gender_centrality = {'Male': [], 'Female': [], 'Other': []}
+    
+    # Analyze by hierarchy level
+    hierarchy_centrality = {}
+    
+    for node, data in G.nodes(data=True):
+        gender = data.get('gender', 'Other')
+        hierarchy = data.get('hierarchy_level', 5)
+        betweenness = centrality_measures['betweenness'].get(node, 0)
+        
+        if gender in gender_centrality:
+            gender_centrality[gender].append(betweenness)
+        
+        if hierarchy not in hierarchy_centrality:
+            hierarchy_centrality[hierarchy] = []
+        hierarchy_centrality[hierarchy].append(betweenness)
+    
+    # Calculate average centrality by group
+    diversity_analysis['gender_avg_centrality'] = {
+        gender: sum(centralities) / len(centralities) if centralities else 0
+        for gender, centralities in gender_centrality.items()
+    }
+    
+    diversity_analysis['hierarchy_avg_centrality'] = {
+        level: sum(centralities) / len(centralities) if centralities else 0
+        for level, centralities in hierarchy_centrality.items()
+    }
+    
+    return diversity_analysis
+
+def analyze_risk_vulnerability(G, centrality_measures):
+    """Analyze network risks and vulnerabilities"""
+    risk_analysis = {}
+    
+    # Identify critical connectors (high betweenness)
+    critical_nodes = []
+    for node, centrality in centrality_measures['betweenness'].items():
+        if centrality > 0.05:  # High threshold for critical nodes
+            data = G.nodes[node]
+            critical_nodes.append({
+                'node': node,
+                'name': data.get('full_name', data.get('name', node)),
+                'betweenness': centrality,
+                'degree': G.degree(node),
+                'department': data.get('department', 'Unknown')
+            })
+    
+    risk_analysis['critical_connectors'] = sorted(critical_nodes, key=lambda x: x['betweenness'], reverse=True)[:10]
+    
+    # Analyze department dependencies
+    dept_dependencies = {}
+    for node in G.nodes():
+        dept = G.nodes[node].get('department', 'Unknown')
+        if dept not in dept_dependencies:
+            dept_dependencies[dept] = {'nodes': 0, 'total_centrality': 0}
+        
+        dept_dependencies[dept]['nodes'] += 1
+        dept_dependencies[dept]['total_centrality'] += centrality_measures['betweenness'].get(node, 0)
+    
+    # Calculate vulnerability score (high centrality concentrated in few people)
+    for dept, data in dept_dependencies.items():
+        if data['nodes'] > 0:
+            data['avg_centrality'] = data['total_centrality'] / data['nodes']
+            data['vulnerability_score'] = data['total_centrality'] / max(data['nodes'], 1)  # Higher = more vulnerable
+    
+    risk_analysis['department_vulnerability'] = dept_dependencies
+    
+    return risk_analysis
+
 def format_analysis_response(response: str) -> str:
     """Format the AI analysis response with better styling"""
     if not response or len(response.strip()) == 0:
