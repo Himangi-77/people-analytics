@@ -633,6 +633,7 @@ async def upload_graph(graph_upload: GraphUpload):
 @api_router.get("/graph-data")
 async def get_graph_data():
     """Get the current graph data"""
+    global graph_data
     if graph_data is None:
         # Try to load from database
         db_graph = await db.graph_data.find_one({})
