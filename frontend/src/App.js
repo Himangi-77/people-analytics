@@ -547,16 +547,16 @@ function Home() {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Sample Questions:</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
                     {sampleQuestions.slice(0, 3).map((q, idx) => (
                       <Button
                         key={idx}
                         variant="ghost"
                         size="sm"
                         onClick={() => handleSampleQuestion(q)}
-                        className="w-full text-left justify-start h-auto p-3 text-xs leading-relaxed"
+                        className="w-full text-left justify-start h-auto p-2 text-xs leading-tight break-words whitespace-normal"
                       >
-                        {q}
+                        <span className="line-clamp-3">{q}</span>
                       </Button>
                     ))}
                   </div>
