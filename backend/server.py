@@ -242,28 +242,34 @@ def get_department_connections(G):
     return dept_connections, dept_internal
 
 def analyze_leadership_influence(G, centrality_measures):
-    """Analyze leadership and influence patterns"""
-    leadership_analysis = {}
+    """Analyze leadership and influence patterns using PageRank and statistical outliers"""
     
-    # Identify formal vs informal leaders
+    # Get ranked influencers and connectors with outlier analysis
+    ranked_analysis = get_ranked_influencers_and_connectors(G, centrality_measures)
+    
+    # Separate formal vs informal leaders based on titles and hierarchy
     formal_leaders = []
     informal_leaders = []
     
-    for node, data in G.nodes(data=True):
-        title = data.get('designation', '').lower()
-        hierarchy = data.get('hierarchy_level', 5)
-        betweenness = centrality_measures['betweenness'].get(node, 0)
+    for influencer in ranked_analysis['influencers']:
+        node_id = influencer['node_id']
+        node_data = G.nodes.get(node_id, {})
+        title = node_data.get('designation', '').lower()
+        hierarchy = node_data.get('hierarchy_level', 5)
         
         # Formal leaders (by title/hierarchy)
         if any(term in title for term in ['manager', 'director', 'head', 'lead', 'vp', 'ceo']) or hierarchy <= 3:
-            formal_leaders.append((node, betweenness, data))
-        
-        # Informal leaders (high centrality but not formal title)
-        elif betweenness > 0.05:  # Threshold for high influence
-            informal_leaders.append((node, betweenness, data))
+            formal_leaders.append(influencer)
+        else:
+            informal_leaders.append(influencer)
     
-    leadership_analysis['formal_leaders'] = sorted(formal_leaders, key=lambda x: x[1], reverse=True)[:10]
-    leadership_analysis['informal_leaders'] = sorted(informal_leaders, key=lambda x: x[1], reverse=True)[:10]
+    leadership_analysis = {
+        'all_influencers': ranked_analysis['influencers'],
+        'all_connectors': ranked_analysis['connectors'],
+        'formal_leaders': formal_leaders,
+        'informal_leaders': informal_leaders,
+        'analysis_summary': ranked_analysis['analysis_summary']
+    }
     
     return leadership_analysis
 
