@@ -1,0 +1,270 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "CEO001",
+        "full_name": "Sarah Williams",
+        "department": "Executive",
+        "designation": "Chief Executive Officer",
+        "hierarchy_level": 1,
+        "gender": "Female",
+        "tenure_year": 8.5,
+        "rating": 9.2
+      }
+    },
+    {
+      "data": {
+        "id": "ENG001",
+        "full_name": "Alex Rodriguez",
+        "department": "Engineering",
+        "designation": "VP Engineering",
+        "hierarchy_level": 2,
+        "gender": "Male",
+        "tenure_year": 6.2,
+        "rating": 8.8
+      }
+    },
+    {
+      "data": {
+        "id": "ENG002",
+        "full_name": "Emily Chen",
+        "department": "Engineering",
+        "designation": "Senior Software Engineer",
+        "hierarchy_level": 4,
+        "gender": "Female",
+        "tenure_year": 4.1,
+        "rating": 8.5
+      }
+    },
+    {
+      "data": {
+        "id": "ENG003",
+        "full_name": "Michael Thompson",
+        "department": "Engineering",
+        "designation": "Frontend Developer",
+        "hierarchy_level": 5,
+        "gender": "Male",
+        "tenure_year": 2.3,
+        "rating": 7.8
+      }
+    },
+    {
+      "data": {
+        "id": "MKT001",
+        "full_name": "Jessica Parker",
+        "department": "Marketing",
+        "designation": "Marketing Director",
+        "hierarchy_level": 3,
+        "gender": "Female",
+        "tenure_year": 5.8,
+        "rating": 8.6
+      }
+    },
+    {
+      "data": {
+        "id": "MKT002",
+        "full_name": "David Kim",
+        "department": "Marketing",
+        "designation": "Content Manager",
+        "hierarchy_level": 4,
+        "gender": "Male",
+        "tenure_year": 3.2,
+        "rating": 8.1
+      }
+    },
+    {
+      "data": {
+        "id": "SAL001",
+        "full_name": "Robert Johnson",
+        "department": "Sales",
+        "designation": "Sales Manager",
+        "hierarchy_level": 3,
+        "gender": "Male",
+        "tenure_year": 7.1,
+        "rating": 8.9
+      }
+    },
+    {
+      "data": {
+        "id": "SAL002",
+        "full_name": "Lisa Davis",
+        "department": "Sales",
+        "designation": "Account Executive",
+        "hierarchy_level": 4,
+        "gender": "Female",
+        "tenure_year": 2.8,
+        "rating": 8.3
+      }
+    },
+    {
+      "data": {
+        "id": "HR001",
+        "full_name": "Maria Lopez",
+        "department": "HR",
+        "designation": "HR Director",
+        "hierarchy_level": 2,
+        "gender": "Female",
+        "tenure_year": 9.1,
+        "rating": 8.7
+      }
+    },
+    {
+      "data": {
+        "id": "ENG004",
+        "full_name": "James Wilson",
+        "department": "Engineering",
+        "designation": "DevOps Engineer",
+        "hierarchy_level": 4,
+        "gender": "Male",
+        "tenure_year": 3.5,
+        "rating": 8.2
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "e1",
+        "source": "CEO001",
+        "target": "ENG001",
+        "weight": 0.9,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "e2",
+        "source": "CEO001",
+        "target": "MKT001",
+        "weight": 0.8,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "e3",
+        "source": "CEO001",
+        "target": "SAL001",
+        "weight": 0.8,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "e4",
+        "source": "CEO001",
+        "target": "HR001",
+        "weight": 0.7,
+        "type": "reports_to"
+      }
+    },
+    {
+      "data": {
+        "id": "e5",
+        "source": "ENG001",
+        "target": "ENG002",
+        "weight": 0.9,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "e6",
+        "source": "ENG001",
+        "target": "ENG003",
+        "weight": 0.7,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "e7",
+        "source": "ENG001",
+        "target": "ENG004",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "e8",
+        "source": "ENG002",
+        "target": "ENG003",
+        "weight": 0.6,
+        "type": "collaboration"
+      }
+    },
+    {
+      "data": {
+        "id": "e9",
+        "source": "ENG002",
+        "target": "MKT002",
+        "weight": 0.4,
+        "type": "cross_functional"
+      }
+    },
+    {
+      "data": {
+        "id": "e10",
+        "source": "MKT001",
+        "target": "MKT002",
+        "weight": 0.8,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "e11",
+        "source": "MKT001",
+        "target": "SAL001",
+        "weight": 0.6,
+        "type": "collaboration"
+      }
+    },
+    {
+      "data": {
+        "id": "e12",
+        "source": "SAL001",
+        "target": "SAL002",
+        "weight": 0.9,
+        "type": "manages"
+      }
+    },
+    {
+      "data": {
+        "id": "e13",
+        "source": "HR001",
+        "target": "ENG001",
+        "weight": 0.5,
+        "type": "hr_support"
+      }
+    },
+    {
+      "data": {
+        "id": "e14",
+        "source": "HR001",
+        "target": "MKT001",
+        "weight": 0.5,
+        "type": "hr_support"
+      }
+    },
+    {
+      "data": {
+        "id": "e15",
+        "source": "HR001",
+        "target": "SAL001",
+        "weight": 0.5,
+        "type": "hr_support"
+      }
+    },
+    {
+      "data": {
+        "id": "e16",
+        "source": "ENG004",
+        "target": "MKT002",
+        "weight": 0.3,
+        "type": "technical_support"
+      }
+    }
+  ]
+}
