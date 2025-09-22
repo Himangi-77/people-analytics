@@ -908,6 +908,33 @@ function Home() {
                   </Select>
                 </div>
 
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Tag className="h-4 w-4 inline mr-1" />
+                    Label Nodes By:
+                  </label>
+                  <Select value={nodeLabelBy} onValueChange={(value) => {
+                    setNodeLabelBy(value);
+                    // Re-render graph with new labels
+                    if (cyRef.current) {
+                      cyRef.current.style().selector('node').style({
+                        'label': (node) => getNodeLabel(node, value)
+                      }).update();
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {labelOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Legend */}
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <h4 className="text-xs font-semibold text-gray-700 mb-2">Current Settings:</h4>
