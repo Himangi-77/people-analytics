@@ -518,7 +518,12 @@ async def query_graph(query: QueryRequest):
         communities = find_communities(nx_graph)
         dept_connections, dept_internal = get_department_connections(nx_graph)
         
-        # Prepare analysis data for AI
+        # Perform specialized analyses
+        leadership_analysis = analyze_leadership_influence(nx_graph, centrality_measures)
+        diversity_analysis = analyze_diversity_equity(nx_graph, centrality_measures)
+        risk_analysis = analyze_risk_vulnerability(nx_graph, centrality_measures)
+        
+        # Prepare comprehensive analysis data for AI
         graph_analysis = {
             'total_nodes': nx_graph.number_of_nodes(),
             'total_edges': nx_graph.number_of_edges(),
@@ -528,6 +533,19 @@ async def query_graph(query: QueryRequest):
             'dept_analysis': {
                 'connections': {dept: len(conns) for dept, conns in dept_connections.items()},
                 'internal': dept_internal
+            },
+            'leadership_analysis': {
+                'formal_leaders_count': len(leadership_analysis['formal_leaders']),
+                'informal_leaders_count': len(leadership_analysis['informal_leaders']),
+                'top_formal': [(data[2].get('full_name', data[2].get('name', data[0])), data[1]) for data in leadership_analysis['formal_leaders'][:3]],
+                'top_informal': [(data[2].get('full_name', data[2].get('name', data[0])), data[1]) for data in leadership_analysis['informal_leaders'][:3]]
+            },
+            'diversity_analysis': diversity_analysis,
+            'risk_analysis': {
+                'critical_connectors_count': len(risk_analysis['critical_connectors']),
+                'top_critical': [(conn['name'], conn['betweenness']) for conn in risk_analysis['critical_connectors'][:3]],
+                'vulnerable_departments': [dept for dept, data in risk_analysis['department_vulnerability'].items() 
+                                         if data.get('vulnerability_score', 0) > 0.02]
             }
         }
         
