@@ -14,17 +14,23 @@ import asyncio
 import networkx as nx
 #from emergentintegrations.llm.chat import LlmChat, UserMessage
 import openai
+import logging
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL')
+db_name = os.environ.get('DB_NAME')
+
+if not mongo_url or not db_name:
+    raise ValueError("Missing MONGO_URL or DB_NAME environment variables")
+
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="People Analytics API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -61,30 +67,16 @@ class GraphEdge(BaseModel):
 
 # Graph Analysis Functions
 def load_cytoscape_to_networkx(cytoscape_data):
-    """Convert Cytoscape JSON to NetworkX graph"""
     G = nx.Graph()
-    
-    # Add nodes
-    if 'elements' in cytoscape_data:
-        elements = cytoscape_data['elements']
-    else:
-        elements = cytoscape_data
-    
-    nodes = elements.get('nodes', [])
-    edges = elements.get('edges', [])
-    
-    for node in nodes:
+    elements = cytoscape_data.get('elements', cytoscape_data)
+    for node in elements.get('nodes', []):
         node_id = node['data']['id']
-        node_data = node['data']
-        G.add_node(node_id, **node_data)
-    
-    # Add edges
-    for edge in edges:
-        edge_data = edge['data'].copy()
-        source = edge_data.pop('source')
-        target = edge_data.pop('target')
-        G.add_edge(source, target, **edge_data)
-    
+        G.add_node(node_id, **node['data'])
+    for edge in elements.get('edges', []):
+        data = edge['data'].copy()
+        source = data.pop('source')
+        target = data.pop('target')
+        G.add_edge(source, target, **data)
     return G
 
 def get_centrality_measures(G):
@@ -786,6 +778,10 @@ async def get_graph_stats():
     }
     
     return stats
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 # Include the router in the main app
 app.include_router(api_router)
