@@ -243,6 +243,89 @@ class PeopleAnalyticsAPITester:
         
         return all_passed
 
+    def test_categorized_questions(self):
+        """Test the new categorized question system with specialized analysis"""
+        # Questions from each category as implemented in the frontend
+        categorized_questions = {
+            'leadership': [
+                "Who are the hidden influencers we should recognize or engage in change initiatives?",
+                "Which managers have the most diverse connections across the organization?",
+                "Are leadership messages reaching the whole network or getting stuck in pockets?",
+                "Who are the informal leaders in our organization, and how do they influence decision-making?"
+            ],
+            'collaboration': [
+                "Which departments are working in silos and need stronger connections?",
+                "Where do we see duplication of work due to weak cross-team ties?",
+                "Which functions collaborate most frequently, and which are isolated?",
+                "Which teams are most at risk of becoming silos, and what connections should we strengthen?"
+            ],
+            'innovation': [
+                "Who are the bridges connecting R&D with Sales and Marketing?",
+                "Which teams have the most cross-functional idea exchanges?",
+                "Where is knowledge concentrated, and how can we spread it more evenly?",
+                "How effectively is knowledge flowing between departments like Sales, Engineering, and Marketing?"
+            ],
+            'diversity': [
+                "Are women and minority groups equally central in the network?",
+                "Do we see equitable access to leadership across different employee groups?",
+                "Which underrepresented groups are underconnected and need stronger sponsorship?"
+            ],
+            'risk': [
+                "If this critical person left tomorrow, what part of the network would be disrupted?",
+                "Who are the successors already positioned to step into key connector roles?",
+                "Which teams are vulnerable because they rely on just one or two connectors?",
+                "Where are the communication bottlenecks that could slow down strategy execution?"
+            ]
+        }
+        
+        all_passed = True
+        
+        # Test one question from each category to verify specialized analysis
+        for category, questions in categorized_questions.items():
+            question = questions[0]  # Test first question from each category
+            print(f"\n   Testing {category.upper()} category:")
+            print(f"   Question: {question}")
+            
+            success, response = self.run_test(
+                f"Categorized Query - {category.title()}",
+                "POST",
+                "query",
+                200,
+                data={"question": question},
+                timeout=60
+            )
+            
+            if success and isinstance(response, dict):
+                answer = response.get('answer', '')
+                
+                # Check if the response contains category-specific analysis
+                category_indicators = {
+                    'leadership': ['leader', 'influence', 'formal', 'informal', 'centrality'],
+                    'collaboration': ['silo', 'department', 'collaboration', 'cross-team', 'connection'],
+                    'innovation': ['knowledge', 'innovation', 'R&D', 'bridge', 'idea'],
+                    'diversity': ['diversity', 'equity', 'gender', 'representation', 'minority'],
+                    'risk': ['risk', 'critical', 'vulnerable', 'succession', 'disrupted']
+                }
+                
+                indicators_found = sum(1 for indicator in category_indicators[category] 
+                                     if indicator.lower() in answer.lower())
+                
+                print(f"   ✅ Category-specific analysis detected: {indicators_found}/{len(category_indicators[category])} indicators found")
+                
+                if indicators_found >= 2:  # At least 2 category-specific terms
+                    print(f"   ✅ Specialized {category} analysis confirmed")
+                else:
+                    print(f"   ⚠️  Limited {category}-specific analysis detected")
+                    all_passed = False
+                    
+                print(f"   Answer length: {len(answer)} chars")
+                print(f"   Subgraph nodes: {len(response.get('subgraph', {}).get('nodes', []))}")
+            else:
+                print(f"   ❌ Failed to process {category} question")
+                all_passed = False
+        
+        return all_passed
+
 def main():
     print("🚀 Starting People Analytics API Tests")
     print("=" * 50)
