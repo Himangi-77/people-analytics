@@ -358,10 +358,7 @@ function Home() {
           selector: 'node',
           style: {
             'background-color': (node) => getNodeColor(node, nodeColorBy),
-            'label': (node) => {
-              const name = node.data('name') || node.data('full_name') || node.data('id');
-              return typeof name === 'string' ? name : String(name);
-            },
+            'label': (node) => getNodeLabel(node, nodeLabelBy),
             'width': (node) => getNodeSize(node, nodeSizeBy),
             'height': (node) => getNodeSize(node, nodeSizeBy),
             'font-size': '10px',
