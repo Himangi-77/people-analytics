@@ -108,14 +108,23 @@ def get_centrality_measures(G):
         }
         return centrality_measures
 
-def detect_upper_outliers(values, method='iqr'):
-    """Detect upper outliers using statistical methods"""
+def detect_upper_outliers(values, method='adaptive'):
+    """Detect upper outliers using statistical methods, adaptive for network size"""
     import numpy as np
     
-    if not values or len(values) < 3:
-        return []
+    if not values or len(values) < 2:
+        return {}
     
     values_array = np.array(list(values.values()) if isinstance(values, dict) else values)
+    n = len(values_array)
+    
+    # For small networks, use more inclusive methods
+    if n <= 10:
+        method = 'percentile_75'  # Top 25%
+    elif n <= 50:
+        method = 'percentile_80'  # Top 20%
+    else:
+        method = 'iqr'  # Standard IQR for larger networks
     
     if method == 'iqr':
         # Interquartile Range method
@@ -124,30 +133,38 @@ def detect_upper_outliers(values, method='iqr'):
         IQR = Q3 - Q1
         upper_threshold = Q3 + 1.5 * IQR
         
-        if isinstance(values, dict):
-            outliers = {k: v for k, v in values.items() if v > upper_threshold}
-        else:
-            outliers = [v for v in values_array if v > upper_threshold]
-            
     elif method == 'zscore':
-        # Z-score method (2 standard deviations)
+        # Z-score method (1.5 standard deviations for smaller networks)
         mean_val = np.mean(values_array)
         std_val = np.std(values_array)
-        upper_threshold = mean_val + 2 * std_val
+        upper_threshold = mean_val + 1.5 * std_val
         
-        if isinstance(values, dict):
-            outliers = {k: v for k, v in values.items() if v > upper_threshold}
-        else:
-            outliers = [v for v in values_array if v > upper_threshold]
-    
-    elif method == 'percentile':
-        # Top 10% method
+    elif method == 'percentile_75':
+        # Top 25% method for small networks
+        upper_threshold = np.percentile(values_array, 75)
+        
+    elif method == 'percentile_80':
+        # Top 20% method for medium networks
+        upper_threshold = np.percentile(values_array, 80)
+        
+    elif method == 'percentile_90':
+        # Top 10% method for large networks
         upper_threshold = np.percentile(values_array, 90)
         
-        if isinstance(values, dict):
-            outliers = {k: v for k, v in values.items() if v > upper_threshold}
-        else:
-            outliers = [v for v in values_array if v > upper_threshold]
+    else:
+        # Default: adaptive percentile based on network size
+        percentile = 90 - (20 * min(n, 50) / 50)  # 90% for n=1, 70% for n=50
+        upper_threshold = np.percentile(values_array, percentile)
+    
+    if isinstance(values, dict):
+        outliers = {k: v for k, v in values.items() if v > upper_threshold}
+    else:
+        outliers = [v for v in values_array if v > upper_threshold]
+    
+    # Ensure we get at least top 3 for small networks, even if not statistical outliers
+    if isinstance(values, dict) and len(outliers) < 3 and n >= 3:
+        sorted_values = sorted(values.items(), key=lambda x: x[1], reverse=True)
+        outliers = dict(sorted_values[:min(3, n)])
     
     return outliers
 
