@@ -634,17 +634,44 @@ async def query_graph(query: QueryRequest):
             'total_nodes': nx_graph.number_of_nodes(),
             'total_edges': nx_graph.number_of_edges(),
             'density': nx.density(nx_graph),
-            'top_central': [(node, score) for node, score in sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:5]],
             'communities_count': len(set(communities.values())),
             'dept_analysis': {
                 'connections': {dept: len(conns) for dept, conns in dept_connections.items()},
                 'internal': dept_internal
             },
-            'leadership_analysis': {
+            'influencers_analysis': {
+                'method': 'PageRank with IQR outlier detection',
+                'total_identified': len(leadership_analysis['all_influencers']),
+                'threshold_score': leadership_analysis['analysis_summary']['pagerank_threshold'],
+                'top_influencers': [
+                    {
+                        'rank': inf['rank'],
+                        'name': inf['name'],
+                        'score': inf['pagerank_score'],
+                        'department': inf['department'],
+                        'title': inf['title']
+                    } for inf in leadership_analysis['all_influencers'][:10]
+                ]
+            },
+            'connectors_analysis': {
+                'method': 'Betweenness Centrality with IQR outlier detection',
+                'total_identified': len(leadership_analysis['all_connectors']),
+                'threshold_score': leadership_analysis['analysis_summary']['betweenness_threshold'],
+                'top_connectors': [
+                    {
+                        'rank': conn['rank'],
+                        'name': conn['name'],
+                        'score': conn['betweenness_score'],
+                        'department': conn['department'],
+                        'title': conn['title']
+                    } for conn in leadership_analysis['all_connectors'][:10]
+                ]
+            },
+            'leadership_breakdown': {
                 'formal_leaders_count': len(leadership_analysis['formal_leaders']),
                 'informal_leaders_count': len(leadership_analysis['informal_leaders']),
-                'top_formal': [(data[2].get('full_name', data[2].get('name', data[0])), data[1]) for data in leadership_analysis['formal_leaders'][:3]],
-                'top_informal': [(data[2].get('full_name', data[2].get('name', data[0])), data[1]) for data in leadership_analysis['informal_leaders'][:3]]
+                'formal_leaders': leadership_analysis['formal_leaders'][:5],
+                'informal_leaders': leadership_analysis['informal_leaders'][:5]
             },
             'diversity_analysis': diversity_analysis,
             'risk_analysis': {
