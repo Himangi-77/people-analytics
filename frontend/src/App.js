@@ -370,6 +370,16 @@ function Home() {
     setQuestion(sampleQ);
   };
 
+  const updateGraphVisualization = () => {
+    if (cyRef.current) {
+      cyRef.current.style().selector('node').style({
+        'background-color': (node) => getNodeColor(node, nodeColorBy),
+        'width': (node) => getNodeSize(node, nodeSizeBy),
+        'height': (node) => getNodeSize(node, nodeSizeBy)
+      }).update();
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
