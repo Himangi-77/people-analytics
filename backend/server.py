@@ -473,9 +473,24 @@ FORMATTING INSTRUCTIONS:
             system_message=system_messages.get(analysis_focus, system_messages["general"]) + base_formatting
         ).with_model("openai", "gpt-4o")
         
-        # Prepare enhanced analysis context
+        # Prepare enhanced analysis context with ranked data
+        influencers_text = ""
+        connectors_text = ""
+        
+        if graph_analysis.get('influencers_analysis', {}).get('top_influencers'):
+            influencers_text = "\n".join([
+                f"  {inf['rank']}. {inf['name']} ({inf['department']}, {inf['title']}) - PageRank Score: {inf['score']}"
+                for inf in graph_analysis['influencers_analysis']['top_influencers']
+            ])
+        
+        if graph_analysis.get('connectors_analysis', {}).get('top_connectors'):
+            connectors_text = "\n".join([
+                f"  {conn['rank']}. {conn['name']} ({conn['department']}, {conn['title']}) - Betweenness Score: {conn['score']}"
+                for conn in graph_analysis['connectors_analysis']['top_connectors']
+            ])
+
         analysis_text = f"""
-        ORGANIZATIONAL NETWORK ANALYSIS
+        ORGANIZATIONAL NETWORK ANALYSIS - STATISTICAL OUTLIER ANALYSIS
 
         Network Structure:
         - Total people: {graph_analysis.get('total_nodes', 0)}
@@ -483,8 +498,23 @@ FORMATTING INSTRUCTIONS:
         - Network density: {graph_analysis.get('density', 0):.3f} (higher = more interconnected)
         - Communities detected: {graph_analysis.get('communities_count', 0)}
 
-        Key Network Players:
-        {', '.join([f"{name} (centrality: {score:.3f})" for name, score in graph_analysis.get('top_central', [])[:5]])}
+        TOP INFLUENCERS (PageRank Upper Outliers):
+        Method: {graph_analysis.get('influencers_analysis', {}).get('method', 'PageRank Analysis')}
+        Threshold Score: {graph_analysis.get('influencers_analysis', {}).get('threshold_score', 0)}
+        Total Identified: {graph_analysis.get('influencers_analysis', {}).get('total_identified', 0)}
+        
+{influencers_text}
+
+        TOP CONNECTORS (Betweenness Centrality Upper Outliers):
+        Method: {graph_analysis.get('connectors_analysis', {}).get('method', 'Betweenness Analysis')}
+        Threshold Score: {graph_analysis.get('connectors_analysis', {}).get('threshold_score', 0)}
+        Total Identified: {graph_analysis.get('connectors_analysis', {}).get('total_identified', 0)}
+        
+{connectors_text}
+
+        Leadership Breakdown:
+        - Formal Leaders (by title/hierarchy): {graph_analysis.get('leadership_breakdown', {}).get('formal_leaders_count', 0)}
+        - Informal Leaders (influence without title): {graph_analysis.get('leadership_breakdown', {}).get('informal_leaders_count', 0)}
 
         Department Analysis:
         - Cross-departmental connections: {graph_analysis.get('dept_analysis', {}).get('connections', {})}
@@ -492,7 +522,7 @@ FORMATTING INSTRUCTIONS:
 
         USER QUESTION: {question}
 
-        Please provide a comprehensive analysis addressing this question with specific insights, data-driven observations, and actionable recommendations for improving organizational effectiveness.
+        Please provide a comprehensive analysis addressing this question. Use the specific ranked lists above, including names, scores, and positions. Focus on actionable insights based on the statistical outlier analysis.
         """
         
         user_message = UserMessage(text=analysis_text)
