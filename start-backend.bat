@@ -23,7 +23,7 @@ if not exist ".env" (
     echo ⚠️  No .env file found. Creating from example...
     copy .env.example .env
     echo 📝 Please edit backend\.env with your configuration
-    echo    Required: EMERGENT_LLM_KEY (OpenAI API key)
+    echo    Required: OPENAI_API_KEY (OpenAI API key)
     echo    Optional: MONGO_URL (defaults to local MongoDB)
 )
 
