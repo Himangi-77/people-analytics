@@ -87,6 +87,23 @@ function Home() {
     { value: 'random', label: 'Random', description: 'Random positioning' }
   ];
 
+  // Node label options
+  const labelOptions = [
+    { value: 'full_name', label: 'Full Name' },
+    { value: 'first_name', label: 'First Name' },
+    { value: 'name', label: 'Name/ID' },
+    { value: 'designation', label: 'Job Title' },
+    { value: 'department', label: 'Department' },
+    { value: 'location', label: 'Location' },
+    { value: 'email', label: 'Email' },
+    { value: 'group_name1', label: 'Group 1' },
+    { value: 'group_name2', label: 'Group 2' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' },
+    { value: 'tenure', label: 'Tenure' },
+    { value: 'rating', label: 'Performance Rating' },
+    { value: 'none', label: 'No Labels' }
+  ];
+
   // Initialize with sample data
   useEffect(() => {
     createSampleGraph();
