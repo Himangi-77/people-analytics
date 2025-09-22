@@ -26,6 +26,8 @@ function Home() {
   const [graphStats, setGraphStats] = useState(null);
   const [graphUploaded, setGraphUploaded] = useState(false);
   const [error, setError] = useState('');
+  const [nodeSizeBy, setNodeSizeBy] = useState('degree');
+  const [nodeColorBy, setNodeColorBy] = useState('department');
   
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
