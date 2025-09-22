@@ -838,10 +838,11 @@ function Home() {
 
                 {/* Legend */}
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <h4 className="text-xs font-semibold text-gray-700 mb-2">Legend:</h4>
+                  <h4 className="text-xs font-semibold text-gray-700 mb-2">Current Settings:</h4>
                   <div className="space-y-1 text-xs text-gray-600">
-                    <div>• Node size reflects {sizingOptions.find(o => o.value === nodeSizeBy)?.label}</div>
-                    <div>• Node color reflects {coloringOptions.find(o => o.value === nodeColorBy)?.label}</div>
+                    <div>• Layout: {layoutOptions.find(o => o.value === graphLayout)?.label}</div>
+                    <div>• Node size: {sizingOptions.find(o => o.value === nodeSizeBy)?.label}</div>
+                    <div>• Node color: {coloringOptions.find(o => o.value === nodeColorBy)?.label}</div>
                     <div>• Click nodes for details</div>
                   </div>
                 </div>
