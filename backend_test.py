@@ -338,7 +338,8 @@ def main():
         ("Nested Format Upload", tester.test_nested_format_upload),
         ("Graph Data Retrieval", tester.test_get_graph_data),
         ("Graph Statistics", tester.test_get_graph_stats),
-        ("Query Processing", tester.test_query_processing)
+        ("Query Processing", tester.test_query_processing),
+        ("Categorized Questions", tester.test_categorized_questions)
     ]
     
     for test_name, test_func in tests:
