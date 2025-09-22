@@ -759,6 +759,30 @@ function Home() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Layout className="h-4 w-4 inline mr-1" />
+                    Graph Layout:
+                  </label>
+                  <Select value={graphLayout} onValueChange={(value) => {
+                    changeGraphLayout(value);
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {layoutOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xs text-gray-500">{option.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
                     <Maximize2 className="h-4 w-4 inline mr-1" />
                     Size Nodes By:
                   </label>
