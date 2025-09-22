@@ -17,11 +17,5 @@
   ],
   "env": {
     "REACT_APP_BACKEND_URL": "@react_app_backend_url"
-  },
-  "build": {
-    "env": {
-      "REACT_APP_BACKEND_URL": "@react_app_backend_url"
-    },
-    "command": "yarn build"
   }
 }
