@@ -172,7 +172,7 @@ PYTHON_VERSION=3.9.18
 MONGO_URL=mongodb+srv://username:password@cluster.mongodb.net/people_analytics
 DB_NAME=people_analytics
 CORS_ORIGINS=https://your-frontend-url.vercel.app
-EMERGENT_LLM_KEY=sk-your-openai-api-key
+OPENAI_API_KEY=sk-your-openai-api-key
 ```
 
 ### **Frontend (Vercel):**
