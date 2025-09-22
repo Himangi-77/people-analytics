@@ -66,6 +66,20 @@ function Home() {
     { value: 'rating', label: 'Performance Rating' }
   ];
 
+  // Graph layout options
+  const layoutOptions = [
+    { value: 'cose-bilkent', label: 'Force-Directed (Cose-Bilkent)', description: 'Natural clustering with good separation' },
+    { value: 'cose', label: 'Force-Directed (Cose)', description: 'Simple force-directed layout' },
+    { value: 'fcose', label: 'Fast Force-Directed', description: 'Optimized for large networks' },
+    { value: 'cola', label: 'Constraint-Based (Cola)', description: 'Respects constraints and groupings' },
+    { value: 'dagre', label: 'Hierarchical (Dagre)', description: 'Top-down organizational chart' },
+    { value: 'breadthfirst', label: 'Hierarchical (Tree)', description: 'Tree-like hierarchy from root' },
+    { value: 'circle', label: 'Circular', description: 'Nodes arranged in a circle' },
+    { value: 'concentric', label: 'Concentric', description: 'Concentric circles by importance' },
+    { value: 'grid', label: 'Grid', description: 'Organized grid layout' },
+    { value: 'random', label: 'Random', description: 'Random positioning' }
+  ];
+
   // Initialize with sample data
   useEffect(() => {
     createSampleGraph();
