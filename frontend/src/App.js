@@ -281,6 +281,56 @@ function Home() {
     }
   };
 
+  const getNodeLabel = (node, labelBy) => {
+    const data = node.data();
+    
+    switch (labelBy) {
+      case 'full_name':
+        return data.full_name || data.name || data.first_name + ' ' + data.last_name || data.id || '';
+      
+      case 'first_name':
+        return data.first_name || data.name || data.full_name || data.id || '';
+      
+      case 'name':
+        return data.name || data.id || data.full_name || '';
+      
+      case 'designation':
+        return data.designation || data.title || '';
+      
+      case 'department':
+        return data.department || '';
+      
+      case 'location':
+        return data.location || '';
+      
+      case 'email':
+        const email = data.email || '';
+        // Show only the part before @ for readability
+        return email.includes('@') ? email.split('@')[0] : email;
+      
+      case 'group_name1':
+        return data.group_name1 || '';
+      
+      case 'group_name2':
+        return data.group_name2 || '';
+      
+      case 'hierarchy_level':
+        return data.hierarchy_level ? `L${data.hierarchy_level}` : '';
+      
+      case 'tenure':
+        return data.tenure || (data.tenure_year ? `${data.tenure_year.toFixed(1)}y` : '');
+      
+      case 'rating':
+        return data.rating ? `★${data.rating}` : '';
+      
+      case 'none':
+        return '';
+      
+      default:
+        return data.full_name || data.name || data.id || '';
+    }
+  };
+
   const initializeGraph = (graphData) => {
     if (!graphContainerRef.current) return;
 
