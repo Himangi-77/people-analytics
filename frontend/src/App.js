@@ -28,6 +28,7 @@ function Home() {
   const [error, setError] = useState('');
   const [nodeSizeBy, setNodeSizeBy] = useState('degree');
   const [nodeColorBy, setNodeColorBy] = useState('department');
+  const [graphLayout, setGraphLayout] = useState('cose-bilkent');
   
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
