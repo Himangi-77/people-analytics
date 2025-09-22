@@ -87,13 +87,14 @@ def load_cytoscape_to_networkx(cytoscape_data):
     return G
 
 def get_centrality_measures(G):
-    """Calculate various centrality measures"""
+    """Calculate various centrality measures including PageRank"""
     try:
         centrality_measures = {
             'betweenness': nx.betweenness_centrality(G),
             'closeness': nx.closeness_centrality(G),
             'degree': nx.degree_centrality(G),
-            'eigenvector': nx.eigenvector_centrality(G, max_iter=1000)
+            'eigenvector': nx.eigenvector_centrality(G, max_iter=1000),
+            'pagerank': nx.pagerank(G, max_iter=1000)
         }
         return centrality_measures
     except:
@@ -102,9 +103,108 @@ def get_centrality_measures(G):
             'betweenness': nx.betweenness_centrality(G),
             'closeness': nx.closeness_centrality(G),
             'degree': nx.degree_centrality(G),
-            'eigenvector': {node: 0.0 for node in G.nodes()}
+            'eigenvector': {node: 0.0 for node in G.nodes()},
+            'pagerank': nx.pagerank(G, max_iter=1000)
         }
         return centrality_measures
+
+def detect_upper_outliers(values, method='iqr'):
+    """Detect upper outliers using statistical methods"""
+    import numpy as np
+    
+    if not values or len(values) < 3:
+        return []
+    
+    values_array = np.array(list(values.values()) if isinstance(values, dict) else values)
+    
+    if method == 'iqr':
+        # Interquartile Range method
+        Q1 = np.percentile(values_array, 25)
+        Q3 = np.percentile(values_array, 75)
+        IQR = Q3 - Q1
+        upper_threshold = Q3 + 1.5 * IQR
+        
+        if isinstance(values, dict):
+            outliers = {k: v for k, v in values.items() if v > upper_threshold}
+        else:
+            outliers = [v for v in values_array if v > upper_threshold]
+            
+    elif method == 'zscore':
+        # Z-score method (2 standard deviations)
+        mean_val = np.mean(values_array)
+        std_val = np.std(values_array)
+        upper_threshold = mean_val + 2 * std_val
+        
+        if isinstance(values, dict):
+            outliers = {k: v for k, v in values.items() if v > upper_threshold}
+        else:
+            outliers = [v for v in values_array if v > upper_threshold]
+    
+    elif method == 'percentile':
+        # Top 10% method
+        upper_threshold = np.percentile(values_array, 90)
+        
+        if isinstance(values, dict):
+            outliers = {k: v for k, v in values.items() if v > upper_threshold}
+        else:
+            outliers = [v for v in values_array if v > upper_threshold]
+    
+    return outliers
+
+def get_ranked_influencers_and_connectors(G, centrality_measures):
+    """Get ranked lists of influencers (PageRank) and connectors (Betweenness) with outlier analysis"""
+    
+    # Get PageRank scores for influencers
+    pagerank_scores = centrality_measures['pagerank']
+    betweenness_scores = centrality_measures['betweenness']
+    
+    # Detect upper outliers
+    pagerank_outliers = detect_upper_outliers(pagerank_scores, method='iqr')
+    betweenness_outliers = detect_upper_outliers(betweenness_scores, method='iqr')
+    
+    # Create ranked lists with names and scores
+    influencers_list = []
+    for node, score in sorted(pagerank_outliers.items(), key=lambda x: x[1], reverse=True):
+        node_data = G.nodes.get(node, {})
+        name = node_data.get('full_name') or node_data.get('name') or str(node)
+        department = node_data.get('department', 'Unknown')
+        title = node_data.get('designation') or node_data.get('title', 'Unknown')
+        
+        influencers_list.append({
+            'rank': len(influencers_list) + 1,
+            'name': name,
+            'pagerank_score': round(score, 4),
+            'department': department,
+            'title': title,
+            'node_id': str(node)
+        })
+    
+    connectors_list = []
+    for node, score in sorted(betweenness_outliers.items(), key=lambda x: x[1], reverse=True):
+        node_data = G.nodes.get(node, {})
+        name = node_data.get('full_name') or node_data.get('name') or str(node)
+        department = node_data.get('department', 'Unknown')
+        title = node_data.get('designation') or node_data.get('title', 'Unknown')
+        
+        connectors_list.append({
+            'rank': len(connectors_list) + 1,
+            'name': name,
+            'betweenness_score': round(score, 4),
+            'department': department,
+            'title': title,
+            'node_id': str(node)
+        })
+    
+    return {
+        'influencers': influencers_list,
+        'connectors': connectors_list,
+        'analysis_summary': {
+            'total_influencers_identified': len(influencers_list),
+            'total_connectors_identified': len(connectors_list),
+            'pagerank_threshold': round(min(pagerank_outliers.values()) if pagerank_outliers else 0, 4),
+            'betweenness_threshold': round(min(betweenness_outliers.values()) if betweenness_outliers else 0, 4)
+        }
+    }
 
 def find_communities(G):
     """Detect communities in the graph"""
