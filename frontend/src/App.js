@@ -157,6 +157,91 @@ function Home() {
     }
   };
 
+  const getNodeColor = (node, colorBy) => {
+    const data = node.data();
+    
+    switch (colorBy) {
+      case 'department':
+        const deptColors = {
+          'HDFC': '#3B82F6',
+          'Engineering': '#10B981',
+          'Marketing': '#EF4444',
+          'Sales': '#F59E0B',
+          'HR': '#8B5CF6',
+          'Finance': '#EC4899'
+        };
+        return deptColors[data.department] || '#6B7280';
+      
+      case 'gender':
+        return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
+      
+      case 'hierarchy_level':
+        const level = data.hierarchy_level || 5;
+        const levelColors = ['#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D', '#16A34A', '#059669', '#0891B2'];
+        return levelColors[Math.min(level - 1, 7)] || '#6B7280';
+      
+      case 'tenure_status':
+        const statusColors = {
+          'new hire': '#EF4444',
+          'tenured': '#10B981',
+          'senior': '#3B82F6'
+        };
+        return statusColors[data.tenure_status] || '#6B7280';
+      
+      case 'rating':
+        const rating = data.rating || 5;
+        if (rating >= 9) return '#10B981';
+        if (rating >= 7) return '#F59E0B';
+        if (rating >= 5) return '#EF4444';
+        return '#6B7280';
+      
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getNodeSize = (node, sizeBy) => {
+    const data = node.data();
+    let value = 0;
+    
+    switch (sizeBy) {
+      case 'degree':
+        value = data.degree || 0;
+        return Math.max(20, Math.min(80, value * 3 + 20));
+      
+      case 'betweenness':
+        value = data.betweenness || 0;
+        return Math.max(20, Math.min(80, value * 1000 + 20));
+      
+      case 'gate_keeper_score':
+        value = data.gate_keeper_score || 0;
+        return Math.max(20, Math.min(80, value * 500 + 20));
+      
+      case 'go_to_score':
+        value = data.go_to_score || 0;
+        return Math.max(20, Math.min(80, value * 200 + 20));
+      
+      case 'social_hubs_score':
+        value = data.social_hubs_score || 0;
+        return Math.max(20, Math.min(80, value * 200 + 20));
+      
+      case 'tenure_year':
+        value = data.tenure_year || 0;
+        return Math.max(20, Math.min(80, value * 2 + 20));
+      
+      case 'rating':
+        value = data.rating || 5;
+        return Math.max(20, Math.min(80, value * 6 + 20));
+      
+      case 'hierarchy_level':
+        value = 8 - (data.hierarchy_level || 5); // Invert so higher levels are bigger
+        return Math.max(20, Math.min(80, value * 8 + 20));
+      
+      default:
+        return 30;
+    }
+  };
+
   const initializeGraph = (graphData) => {
     if (!graphContainerRef.current) return;
 
@@ -183,27 +268,23 @@ function Home() {
         {
           selector: 'node',
           style: {
-            'background-color': (node) => {
-              const dept = node.data('department');
-              const colors = {
-                'Engineering': '#3B82F6',
-                'Marketing': '#EF4444',
-                'Sales': '#10B981',
-                'HR': '#F59E0B'
-              };
-              return colors[dept] || '#6B7280';
+            'background-color': (node) => getNodeColor(node, nodeColorBy),
+            'label': (node) => {
+              const name = node.data('name') || node.data('full_name') || node.data('id');
+              return typeof name === 'string' ? name : String(name);
             },
-            'label': 'data(name)',
-            'width': (node) => Math.max(30, (node.data('betweenness') || 0) * 100 + 20),
-            'height': (node) => Math.max(30, (node.data('betweenness') || 0) * 100 + 20),
-            'font-size': '12px',
+            'width': (node) => getNodeSize(node, nodeSizeBy),
+            'height': (node) => getNodeSize(node, nodeSizeBy),
+            'font-size': '10px',
             'text-valign': 'center',
             'text-halign': 'center',
             'color': '#ffffff',
             'text-outline-color': '#000000',
             'text-outline-width': 1,
             'border-width': 2,
-            'border-color': '#ffffff'
+            'border-color': '#ffffff',
+            'text-wrap': 'ellipsis',
+            'text-max-width': '60px'
           }
         },
         {
