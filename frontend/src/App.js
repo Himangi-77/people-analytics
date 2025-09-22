@@ -18,6 +18,9 @@ import './App.css';
 
 // Register cytoscape extensions
 cytoscape.use(coseBilkent);
+cytoscape.use(fcose);
+cytoscape.use(cola);
+cytoscape.use(dagre);
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
