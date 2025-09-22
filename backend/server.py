@@ -141,42 +141,114 @@ def get_department_connections(G):
     
     return dept_connections, dept_internal
 
+def format_analysis_response(response: str) -> str:
+    """Format the AI analysis response with better styling"""
+    if not response or len(response.strip()) == 0:
+        return response
+    
+    # Split into paragraphs and format
+    paragraphs = response.split('\n\n')
+    formatted_paragraphs = []
+    
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+            
+        # Format headers (lines that end with colons or are short and ALL CAPS)
+        if paragraph.endswith(':') or (len(paragraph) < 50 and paragraph.isupper()):
+            paragraph = f"**{paragraph}**"
+        
+        # Format bullet points
+        elif paragraph.startswith('-') or paragraph.startswith('•'):
+            # Bold the first part before colon if exists
+            if ':' in paragraph:
+                parts = paragraph.split(':', 1)
+                paragraph = f"**{parts[0]}:** {parts[1].strip()}"
+        
+        # Format numbered points
+        elif any(paragraph.startswith(f"{i}.") for i in range(1, 11)):
+            # Bold the first part before colon if exists
+            if ':' in paragraph:
+                parts = paragraph.split(':', 1)
+                paragraph = f"**{parts[0]}:** {parts[1].strip()}"
+        
+        # Emphasize key terms
+        paragraph = paragraph.replace('Key Insight:', '**Key Insight:**')
+        paragraph = paragraph.replace('Recommendation:', '**Recommendation:**')
+        paragraph = paragraph.replace('Important:', '**Important:**')
+        paragraph = paragraph.replace('Note:', '**Note:**')
+        paragraph = paragraph.replace('Warning:', '**Warning:**')
+        paragraph = paragraph.replace('Action Item:', '**Action Item:**')
+        
+        # Italicize percentages and metrics
+        import re
+        paragraph = re.sub(r'(\d+\.?\d*%)', r'*\1*', paragraph)
+        paragraph = re.sub(r'(\d+\.?\d* out of \d+)', r'*\1*', paragraph)
+        
+        formatted_paragraphs.append(paragraph)
+    
+    # Join with double line breaks for proper spacing
+    return '\n\n'.join(formatted_paragraphs)
+
 async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
-    """Use OpenAI to analyze graph data and provide insights"""
+    """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
     try:
         # Initialize LLM chat
         chat = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"graph_analysis_{uuid.uuid4()}",
-            system_message="""You are an expert organizational network analyst. 
-            You analyze social networks, collaboration patterns, and organizational structures.
-            Provide clear, actionable insights based on graph analysis data.
-            Focus on practical recommendations for improving organizational effectiveness."""
+            system_message="""You are an expert organizational network analyst specializing in social networks, collaboration patterns, and organizational structures.
+
+FORMATTING INSTRUCTIONS:
+- Structure your response with clear sections and headers
+- Use paragraphs to separate different insights
+- Include specific data points and metrics
+- Provide actionable recommendations
+- Use clear, professional language
+- Organize insights logically from high-level to specific
+
+ANALYSIS FOCUS:
+- Identify key influencers and connectors
+- Highlight potential communication bottlenecks
+- Suggest improvements for collaboration
+- Point out organizational structure insights
+- Provide practical next steps"""
         ).with_model("openai", "gpt-4o")
         
-        # Prepare analysis context
+        # Prepare enhanced analysis context
         analysis_text = f"""
-        Graph Analysis Data:
-        - Total nodes: {graph_analysis.get('total_nodes', 0)}
-        - Total edges: {graph_analysis.get('total_edges', 0)}
-        - Graph density: {graph_analysis.get('density', 0):.3f}
-        - Top central people: {graph_analysis.get('top_central', [])}
+        ORGANIZATIONAL NETWORK ANALYSIS
+
+        Network Structure:
+        - Total people: {graph_analysis.get('total_nodes', 0)}
+        - Total connections: {graph_analysis.get('total_edges', 0)}
+        - Network density: {graph_analysis.get('density', 0):.3f} (higher = more interconnected)
         - Communities detected: {graph_analysis.get('communities_count', 0)}
-        - Department connections: {graph_analysis.get('dept_analysis', {})}
-        
-        User Question: {question}
-        
-        Provide a comprehensive analysis addressing the user's question with specific insights and recommendations.
+
+        Key Network Players:
+        {', '.join([f"{name} (centrality: {score:.3f})" for name, score in graph_analysis.get('top_central', [])[:5]])}
+
+        Department Analysis:
+        - Cross-departmental connections: {graph_analysis.get('dept_analysis', {}).get('connections', {})}
+        - Internal team connections: {graph_analysis.get('dept_analysis', {}).get('internal', {})}
+
+        USER QUESTION: {question}
+
+        Please provide a comprehensive analysis addressing this question with specific insights, data-driven observations, and actionable recommendations for improving organizational effectiveness.
         """
         
         user_message = UserMessage(text=analysis_text)
         response = await chat.send_message(user_message)
         
-        return response
+        # Format the response for better presentation
+        formatted_response = format_analysis_response(response)
+        
+        return formatted_response
         
     except Exception as e:
         logging.error(f"AI analysis failed: {e}")
-        return f"Analysis complete. Based on the graph structure with {graph_analysis.get('total_nodes', 0)} nodes and {graph_analysis.get('total_edges', 0)} edges, here are the key findings related to your question."
+        return f"**Analysis Summary**\n\nBased on the network analysis of *{graph_analysis.get('total_nodes', 0)} people* with *{graph_analysis.get('total_edges', 0)} connections*, here are the key findings:\n\n**Network Overview:**\nThe organizational network shows a density of *{graph_analysis.get('density', 0):.3f}*, indicating the level of interconnectedness within the organization.\n\n**Key Observations:**\nFurther detailed analysis would provide more specific insights related to your question about organizational dynamics and collaboration patterns."
 
 def create_subgraph_for_question(G, question: str, centrality_measures: Dict) -> Dict:
     """Create a relevant subgraph based on the question type"""
