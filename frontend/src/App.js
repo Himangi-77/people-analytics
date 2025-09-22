@@ -395,6 +395,135 @@ function Home() {
     }
   };
 
+  const getLayoutConfig = (layoutName) => {
+    const baseConfig = {
+      animate: true,
+      animationDuration: 1000,
+      fit: true,
+      padding: 50
+    };
+
+    switch (layoutName) {
+      case 'cose-bilkent':
+        return {
+          name: 'cose-bilkent',
+          ...baseConfig,
+          nodeRepulsion: 8000,
+          idealEdgeLength: 100,
+          edgeElasticity: 0.1,
+          nestingFactor: 0.1,
+          gravity: 0.25,
+          numIter: 2500,
+          tile: true,
+          animateFilter: (node) => true
+        };
+      
+      case 'cose':
+        return {
+          name: 'cose',
+          ...baseConfig,
+          nodeRepulsion: (node) => 400000,
+          nodeOverlap: 10,
+          idealEdgeLength: (edge) => 80,
+          gravity: 80,
+          numIter: 1000
+        };
+      
+      case 'fcose':
+        return {
+          name: 'fcose',
+          ...baseConfig,
+          quality: 'default',
+          randomize: false,
+          nodeRepulsion: (node) => 4500,
+          idealEdgeLength: (edge) => 50,
+          gravity: 0.25,
+          gravityRange: 3.8
+        };
+      
+      case 'cola':
+        return {
+          name: 'cola',
+          ...baseConfig,
+          nodeSpacing: 5,
+          edgeLengthVal: 45,
+          handleDisconnected: true,
+          avoidOverlap: true,
+          infinite: false
+        };
+      
+      case 'dagre':
+        return {
+          name: 'dagre',
+          ...baseConfig,
+          nodeSep: 50,
+          edgeSep: 10,
+          rankSep: 100,
+          rankDir: 'TB', // Top to bottom
+          align: 'UL'
+        };
+      
+      case 'breadthfirst':
+        return {
+          name: 'breadthfirst',
+          ...baseConfig,
+          directed: false,
+          roots: undefined, // Will auto-select roots
+          spacingFactor: 1.5,
+          circle: false,
+          grid: false
+        };
+      
+      case 'circle':
+        return {
+          name: 'circle',
+          ...baseConfig,
+          radius: 200,
+          startAngle: -Math.PI / 2,
+          sweep: Math.PI * 2,
+          clockwise: true
+        };
+      
+      case 'concentric':
+        return {
+          name: 'concentric',
+          ...baseConfig,
+          concentric: (node) => node.data('degree') || 1,
+          levelWidth: () => 2,
+          minNodeSpacing: 50,
+          spacingFactor: 0.5
+        };
+      
+      case 'grid':
+        return {
+          name: 'grid',
+          ...baseConfig,
+          rows: undefined, // Auto-calculate
+          cols: undefined, // Auto-calculate
+          position: (node) => ({})
+        };
+      
+      case 'random':
+        return {
+          name: 'random',
+          ...baseConfig,
+          fit: true
+        };
+      
+      default:
+        return getLayoutConfig('cose-bilkent');
+    }
+  };
+
+  const changeGraphLayout = (layoutName) => {
+    if (cyRef.current) {
+      setGraphLayout(layoutName);
+      const layoutConfig = getLayoutConfig(layoutName);
+      
+      cyRef.current.layout(layoutConfig).run();
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
