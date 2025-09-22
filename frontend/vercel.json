@@ -16,6 +16,6 @@
     }
   ],
   "env": {
-    "REACT_APP_BACKEND_URL": "@react_app_backend_url"
+    "REACT_APP_BACKEND_URL": "https://people-analytics-backend-1.onrender.com"
   }
 }
