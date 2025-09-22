@@ -845,20 +845,50 @@ function Home() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Sample Questions:</h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {sampleQuestions.slice(0, 3).map((q, idx) => (
-                      <Button
-                        key={idx}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSampleQuestion(q)}
-                        className="w-full text-left justify-start h-auto p-2 text-xs leading-tight break-words whitespace-normal"
-                      >
-                        <span className="line-clamp-3">{q}</span>
-                      </Button>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Analysis Categories:</h3>
+                  <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-3">
+                      <TabsTrigger value="leadership" className="text-xs">
+                        {questionCategories.leadership.icon} Leadership
+                      </TabsTrigger>
+                      <TabsTrigger value="collaboration" className="text-xs">
+                        {questionCategories.collaboration.icon} Collaboration
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsList className="grid w-full grid-cols-3 mb-3">
+                      <TabsTrigger value="innovation" className="text-xs">
+                        {questionCategories.innovation.icon} Innovation
+                      </TabsTrigger>
+                      <TabsTrigger value="diversity" className="text-xs">
+                        {questionCategories.diversity.icon} DEI
+                      </TabsTrigger>
+                      <TabsTrigger value="risk" className="text-xs">
+                        {questionCategories.risk.icon} Risk
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {Object.entries(questionCategories).map(([key, category]) => (
+                      <TabsContent key={key} value={key} className="mt-0">
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-2">
+                            {category.icon} {category.title}
+                          </h4>
+                          {category.questions.map((question, idx) => (
+                            <Button
+                              key={idx}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSampleQuestion(question)}
+                              className="w-full text-left justify-start h-auto p-2 text-xs leading-tight break-words whitespace-normal hover:bg-blue-50"
+                            >
+                              <span className="line-clamp-2">{question}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </TabsContent>
                     ))}
-                  </div>
+                  </Tabs>
                 </div>
 
                 <Separator />
