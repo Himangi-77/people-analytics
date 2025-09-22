@@ -454,7 +454,8 @@ function Home() {
       cyRef.current.style().selector('node').style({
         'background-color': (node) => getNodeColor(node, nodeColorBy),
         'width': (node) => getNodeSize(node, nodeSizeBy),
-        'height': (node) => getNodeSize(node, nodeSizeBy)
+        'height': (node) => getNodeSize(node, nodeSizeBy),
+        'label': (node) => getNodeLabel(node, nodeLabelBy)
       }).update();
     }
   };
