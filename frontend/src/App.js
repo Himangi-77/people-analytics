@@ -321,14 +321,7 @@ function Home() {
           }
         }
       ],
-      layout: {
-        name: 'cose-bilkent',
-        animate: true,
-        animationDuration: 1000,
-        nodeRepulsion: 8000,
-        idealEdgeLength: 100,
-        edgeElasticity: 0.1
-      }
+      layout: getLayoutConfig(graphLayout)
     });
 
     // Add interactivity
