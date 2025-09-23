@@ -12,10 +12,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/"
     }
-  ],
-  "env": {
-    "REACT_APP_BACKEND_URL": "https://people-analytics-backend-1.onrender.com"
-  }
+  ]
 }
