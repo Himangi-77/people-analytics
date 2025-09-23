@@ -805,9 +805,6 @@ async def reset_to_placeholder():
     initialize_placeholder_graph()
     return {"message": "Graph reset to placeholder data", "nodes": len(PLACEHOLDER_GRAPH_DATA["nodes"]), "edges": len(PLACEHOLDER_GRAPH_DATA["edges"])}
 
-# Include the router in the main app
-app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -815,6 +812,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include the router in the main app
+app.include_router(api_router)
 
 # Configure logging
 logging.basicConfig(
