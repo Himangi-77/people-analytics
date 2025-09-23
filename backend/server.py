@@ -39,6 +39,64 @@ api_router = APIRouter(prefix="/api")
 graph_data = None
 nx_graph = None
 
+# Placeholder graph data for demo purposes
+PLACEHOLDER_GRAPH_DATA = {
+    "nodes": [
+        {"data": {"id": "alice", "name": "Alice Johnson", "full_name": "Alice Johnson", "department": "Engineering", "designation": "Senior Manager", "hierarchy_level": 2, "gender": "Female"}},
+        {"data": {"id": "bob", "name": "Bob Smith", "full_name": "Bob Smith", "department": "Engineering", "designation": "Developer", "hierarchy_level": 4, "gender": "Male"}},
+        {"data": {"id": "charlie", "name": "Charlie Brown", "full_name": "Charlie Brown", "department": "Product", "designation": "Product Manager", "hierarchy_level": 3, "gender": "Male"}},
+        {"data": {"id": "diana", "name": "Diana Wilson", "full_name": "Diana Wilson", "department": "Marketing", "designation": "Marketing Director", "hierarchy_level": 2, "gender": "Female"}},
+        {"data": {"id": "eve", "name": "Eve Davis", "full_name": "Eve Davis", "department": "Sales", "designation": "Sales Manager", "hierarchy_level": 3, "gender": "Female"}},
+        {"data": {"id": "frank", "name": "Frank Miller", "full_name": "Frank Miller", "department": "Engineering", "designation": "Tech Lead", "hierarchy_level": 3, "gender": "Male"}},
+        {"data": {"id": "grace", "name": "Grace Lee", "full_name": "Grace Lee", "department": "HR", "designation": "HR Business Partner", "hierarchy_level": 3, "gender": "Female"}},
+        {"data": {"id": "henry", "name": "Henry Taylor", "full_name": "Henry Taylor", "department": "Finance", "designation": "Financial Analyst", "hierarchy_level": 4, "gender": "Male"}},
+        {"data": {"id": "iris", "name": "Iris Garcia", "full_name": "Iris Garcia", "department": "Product", "designation": "UX Designer", "hierarchy_level": 4, "gender": "Female"}},
+        {"data": {"id": "jack", "name": "Jack Thompson", "full_name": "Jack Thompson", "department": "Operations", "designation": "Operations Manager", "hierarchy_level": 3, "gender": "Male"}},
+        {"data": {"id": "kate", "name": "Kate Anderson", "full_name": "Kate Anderson", "department": "Marketing", "designation": "Content Strategist", "hierarchy_level": 4, "gender": "Female"}},
+        {"data": {"id": "leo", "name": "Leo Rodriguez", "full_name": "Leo Rodriguez", "department": "Sales", "designation": "Sales Representative", "hierarchy_level": 5, "gender": "Male"}},
+        {"data": {"id": "mary", "name": "Mary Chen", "full_name": "Mary Chen", "department": "Engineering", "designation": "QA Engineer", "hierarchy_level": 4, "gender": "Female"}},
+        {"data": {"id": "nick", "name": "Nick White", "full_name": "Nick White", "department": "Finance", "designation": "Finance Director", "hierarchy_level": 2, "gender": "Male"}},
+        {"data": {"id": "olivia", "name": "Olivia Kumar", "full_name": "Olivia Kumar", "department": "Product", "designation": "Product Owner", "hierarchy_level": 4, "gender": "Female"}}
+    ],
+    "edges": [
+        {"data": {"id": "alice-bob", "source": "alice", "target": "bob", "weight": 2}},
+        {"data": {"id": "alice-frank", "source": "alice", "target": "frank", "weight": 3}},
+        {"data": {"id": "alice-charlie", "source": "alice", "target": "charlie", "weight": 2}},
+        {"data": {"id": "alice-diana", "source": "alice", "target": "diana", "weight": 1}},
+        {"data": {"id": "bob-frank", "source": "bob", "target": "frank", "weight": 3}},
+        {"data": {"id": "bob-mary", "source": "bob", "target": "mary", "weight": 2}},
+        {"data": {"id": "charlie-iris", "source": "charlie", "target": "iris", "weight": 2}},
+        {"data": {"id": "charlie-olivia", "source": "charlie", "target": "olivia", "weight": 2}},
+        {"data": {"id": "charlie-alice", "source": "charlie", "target": "alice", "weight": 1}},
+        {"data": {"id": "diana-kate", "source": "diana", "target": "kate", "weight": 2}},
+        {"data": {"id": "diana-grace", "source": "diana", "target": "grace", "weight": 1}},
+        {"data": {"id": "eve-leo", "source": "eve", "target": "leo", "weight": 3}},
+        {"data": {"id": "eve-jack", "source": "eve", "target": "jack", "weight": 1}},
+        {"data": {"id": "frank-mary", "source": "frank", "target": "mary", "weight": 2}},
+        {"data": {"id": "grace-henry", "source": "grace", "target": "henry", "weight": 1}},
+        {"data": {"id": "grace-nick", "source": "grace", "target": "nick", "weight": 1}},
+        {"data": {"id": "henry-nick", "source": "henry", "target": "nick", "weight": 3}},
+        {"data": {"id": "iris-olivia", "source": "iris", "target": "olivia", "weight": 2}},
+        {"data": {"id": "jack-nick", "source": "jack", "target": "nick", "weight": 1}},
+        {"data": {"id": "kate-eve", "source": "kate", "target": "eve", "weight": 1}},
+        {"data": {"id": "charlie-diana", "source": "charlie", "target": "diana", "weight": 1}},
+        {"data": {"id": "alice-grace", "source": "alice", "target": "grace", "weight": 1}},
+        {"data": {"id": "frank-charlie", "source": "frank", "target": "charlie", "weight": 1}},
+        {"data": {"id": "mary-iris", "source": "mary", "target": "iris", "weight": 1}},
+        {"data": {"id": "leo-jack", "source": "leo", "target": "jack", "weight": 1}}
+    ]
+}
+
+def initialize_placeholder_graph():
+    """Initialize the placeholder graph on startup"""
+    global graph_data, nx_graph
+    try:
+        graph_data = PLACEHOLDER_GRAPH_DATA
+        nx_graph = load_cytoscape_to_networkx(graph_data)
+        logging.info(f"Placeholder graph initialized with {nx_graph.number_of_nodes()} nodes and {nx_graph.number_of_edges()} edges")
+    except Exception as e:
+        logging.error(f"Failed to initialize placeholder graph: {e}")
+
 # Pydantic Models
 class GraphUpload(BaseModel):
     graph_data: Dict[str, Any]
@@ -69,10 +127,19 @@ class GraphEdge(BaseModel):
 def load_cytoscape_to_networkx(cytoscape_data):
     G = nx.Graph()
     elements = cytoscape_data.get('elements', cytoscape_data)
-    for node in elements.get('nodes', []):
+    
+    # Handle both 'elements' format and direct nodes/edges format
+    if 'nodes' in elements and 'edges' in elements:
+        nodes_data = elements['nodes']
+        edges_data = elements['edges']
+    else:
+        nodes_data = cytoscape_data.get('nodes', [])
+        edges_data = cytoscape_data.get('edges', [])
+    
+    for node in nodes_data:
         node_id = node['data']['id']
         G.add_node(node_id, **node['data'])
-    for edge in elements.get('edges', []):
+    for edge in edges_data:
         data = edge['data'].copy()
         source = data.pop('source')
         target = data.pop('target')
@@ -410,142 +477,54 @@ def format_analysis_response(response: str) -> str:
 async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
     """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
     try:
-        # Initialize LLM chat
-        # Detect question category for specialized analysis
-        question_lower = question.lower()
-        analysis_focus = "general"
+        # For placeholder/demo purposes, return a formatted analysis without actual AI call
+        # Uncomment the actual AI implementation when you have the LLM setup
         
-        if any(term in question_lower for term in ['leader', 'influence', 'manager', 'message']):
-            analysis_focus = "leadership"
-        elif any(term in question_lower for term in ['silo', 'collaboration', 'department', 'team']):
-            analysis_focus = "collaboration"
-        elif any(term in question_lower for term in ['innovation', 'knowledge', 'r&d', 'idea', 'bridge']):
-            analysis_focus = "innovation"
-        elif any(term in question_lower for term in ['women', 'minority', 'diversity', 'equity', 'inclusion']):
-            analysis_focus = "diversity"
-        elif any(term in question_lower for term in ['risk', 'succession', 'vulnerable', 'critical', 'disrupted']):
-            analysis_focus = "risk"
-
-        # Specialized system messages based on analysis focus
-        system_messages = {
-            "leadership": """You are an expert in organizational leadership and influence analysis. Focus on:
-            - Identifying formal vs informal leaders
-            - Measuring influence patterns and reach
-            - Analyzing communication cascades and message flow
-            - Assessing leadership diversity and accessibility
-            - Recommending leadership development strategies""",
-            
-            "collaboration": """You are an expert in organizational collaboration and silo analysis. Focus on:
-            - Detecting departmental silos and isolation
-            - Measuring cross-functional collaboration strength
-            - Identifying duplication and inefficiencies
-            - Analyzing collaboration patterns and bottlenecks
-            - Recommending structural improvements""",
-            
-            "innovation": """You are an expert in innovation networks and knowledge flow analysis. Focus on:
-            - Mapping knowledge transfer pathways
-            - Identifying innovation bridges and connectors
-            - Analyzing cross-functional idea exchange
-            - Measuring knowledge concentration and distribution
-            - Recommending innovation network optimization""",
-            
-            "diversity": """You are an expert in diversity, equity, and inclusion network analysis. Focus on:
-            - Analyzing representation in central network positions
-            - Measuring equity in access to leadership and opportunities
-            - Identifying underconnected groups needing support
-            - Assessing inclusive leadership patterns
-            - Recommending DEI network interventions""",
-            
-            "risk": """You are an expert in organizational risk and succession analysis. Focus on:
-            - Identifying critical single points of failure
-            - Assessing network vulnerability and resilience
-            - Mapping succession readiness and pathways
-            - Analyzing dependency risks and mitigation strategies
-            - Recommending risk reduction and succession planning""",
-            
-            "general": """You are an expert organizational network analyst specializing in social networks, collaboration patterns, and organizational structures."""
-        }
-
-        base_formatting = """
-FORMATTING INSTRUCTIONS:
-- Structure your response with clear sections and headers
-- Use paragraphs to separate different insights
-- Include specific data points and metrics
-- Provide actionable recommendations
-- Use clear, professional language
-- Organize insights logically from high-level to specific
-- Bold key findings and recommendations
-- Use bullet points for lists and action items"""
-
+        placeholder_response = f"""
+        **Network Analysis Summary**
+        
+        Based on your question: "{question}"
+        
+        **Key Findings:**
+        
+        The organizational network shows *{graph_analysis.get('total_nodes', 0)} people* connected through *{graph_analysis.get('total_edges', 0)} relationships*.
+        
+        **Top Influencers (PageRank Analysis):**
+        {chr(10).join([f"• **{inf['name']}** ({inf['department']}) - *PageRank: {inf['score']}*" for inf in graph_analysis.get('influencers_analysis', {}).get('top_influencers', [])[:3]])}
+        
+        **Key Connectors (Betweenness Analysis):**
+        {chr(10).join([f"• **{conn['name']}** ({conn['department']}) - *Betweenness: {conn['score']}*" for conn in graph_analysis.get('connectors_analysis', {}).get('top_connectors', [])[:3]])}
+        
+        **Network Density:** *{graph_analysis.get('density', 0):.3f}* - This indicates {"a highly connected" if graph_analysis.get('density', 0) > 0.3 else "a moderately connected" if graph_analysis.get('density', 0) > 0.1 else "a sparse"} network structure.
+        
+        **Recommendations:**
+        - Monitor key connectors as they bridge different parts of the organization
+        - Consider developing backup pathways for critical communication flows
+        - Leverage informal leaders for change management initiatives
+        
+        **Note:** This is a demonstration analysis. Enable AI integration for detailed insights.
+        """
+        
+        return placeholder_response.strip()
+        
+        # Actual AI implementation (commented out for placeholder functionality)
+        """
+        # Initialize LLM chat
         chat = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"graph_analysis_{uuid.uuid4()}",
-            system_message=system_messages.get(analysis_focus, system_messages["general"]) + base_formatting
+            system_message="You are an expert organizational network analyst..."
         ).with_model("openai", "gpt-4o")
-        
-        # Prepare enhanced analysis context with ranked data
-        influencers_text = ""
-        connectors_text = ""
-        
-        if graph_analysis.get('influencers_analysis', {}).get('top_influencers'):
-            influencers_text = "\n".join([
-                f"  {inf['rank']}. {inf['name']} ({inf['department']}, {inf['title']}) - PageRank Score: {inf['score']}"
-                for inf in graph_analysis['influencers_analysis']['top_influencers']
-            ])
-        
-        if graph_analysis.get('connectors_analysis', {}).get('top_connectors'):
-            connectors_text = "\n".join([
-                f"  {conn['rank']}. {conn['name']} ({conn['department']}, {conn['title']}) - Betweenness Score: {conn['score']}"
-                for conn in graph_analysis['connectors_analysis']['top_connectors']
-            ])
-
-        analysis_text = f"""
-        ORGANIZATIONAL NETWORK ANALYSIS - STATISTICAL OUTLIER ANALYSIS
-
-        Network Structure:
-        - Total people: {graph_analysis.get('total_nodes', 0)}
-        - Total connections: {graph_analysis.get('total_edges', 0)}
-        - Network density: {graph_analysis.get('density', 0):.3f} (higher = more interconnected)
-        - Communities detected: {graph_analysis.get('communities_count', 0)}
-
-        TOP INFLUENCERS (PageRank Upper Outliers):
-        Method: {graph_analysis.get('influencers_analysis', {}).get('method', 'PageRank Analysis')}
-        Threshold Score: {graph_analysis.get('influencers_analysis', {}).get('threshold_score', 0)}
-        Total Identified: {graph_analysis.get('influencers_analysis', {}).get('total_identified', 0)}
-        
-{influencers_text}
-
-        TOP CONNECTORS (Betweenness Centrality Upper Outliers):
-        Method: {graph_analysis.get('connectors_analysis', {}).get('method', 'Betweenness Analysis')}
-        Threshold Score: {graph_analysis.get('connectors_analysis', {}).get('threshold_score', 0)}
-        Total Identified: {graph_analysis.get('connectors_analysis', {}).get('total_identified', 0)}
-        
-{connectors_text}
-
-        Leadership Breakdown:
-        - Formal Leaders (by title/hierarchy): {graph_analysis.get('leadership_breakdown', {}).get('formal_leaders_count', 0)}
-        - Informal Leaders (influence without title): {graph_analysis.get('leadership_breakdown', {}).get('informal_leaders_count', 0)}
-
-        Department Analysis:
-        - Cross-departmental connections: {graph_analysis.get('dept_analysis', {}).get('connections', {})}
-        - Internal team connections: {graph_analysis.get('dept_analysis', {}).get('internal', {})}
-
-        USER QUESTION: {question}
-
-        Please provide a comprehensive analysis addressing this question. Use the specific ranked lists above, including names, scores, and positions. Focus on actionable insights based on the statistical outlier analysis.
-        """
         
         user_message = UserMessage(text=analysis_text)
         response = await chat.send_message(user_message)
         
-        # Format the response for better presentation
-        formatted_response = format_analysis_response(response)
-        
-        return formatted_response
+        return format_analysis_response(response)
+        """
         
     except Exception as e:
         logging.error(f"AI analysis failed: {e}")
-        return f"**Analysis Summary**\n\nBased on the network analysis of *{graph_analysis.get('total_nodes', 0)} people* with *{graph_analysis.get('total_edges', 0)} connections*, here are the key findings:\n\n**Network Overview:**\nThe organizational network shows a density of *{graph_analysis.get('density', 0):.3f}*, indicating the level of interconnectedness within the organization.\n\n**Key Observations:**\nFurther detailed analysis would provide more specific insights related to your question about organizational dynamics and collaboration patterns."
+        return f"**Analysis Summary**\n\nBased on the network analysis, here are the key findings for your question about organizational dynamics and collaboration patterns. Network shows *{graph_analysis.get('total_nodes', 0)} people* with *{graph_analysis.get('total_edges', 0)} connections*."
 
 def create_subgraph_for_question(G, question: str, centrality_measures: Dict) -> Dict:
     """Create a relevant subgraph based on the question type"""
@@ -635,10 +614,19 @@ async def get_graph_data():
     """Get the current graph data"""
     global graph_data
     if graph_data is None:
-        # Try to load from database
-        db_graph = await db.graph_data.find_one({})
-        if db_graph:
-            return {"graph": db_graph["data"]}
+        # Try to load from database first
+        try:
+            db_graph = await db.graph_data.find_one({})
+            if db_graph:
+                graph_data = db_graph["data"]
+                return {"graph": graph_data}
+        except Exception as e:
+            logging.warning(f"Failed to load from database: {e}")
+        
+        # If no database data, initialize with placeholder
+        initialize_placeholder_graph()
+        if graph_data:
+            return {"graph": graph_data}
         else:
             raise HTTPException(status_code=404, detail="No graph data found")
     
@@ -650,13 +638,21 @@ async def query_graph(query: QueryRequest):
     global nx_graph
     
     if nx_graph is None:
-        # Try to load from database
-        db_graph = await db.graph_data.find_one({})
-        if db_graph:
-            global graph_data
-            graph_data = db_graph["data"]
-            nx_graph = load_cytoscape_to_networkx(graph_data)
-        else:
+        # Try to load from database first
+        try:
+            db_graph = await db.graph_data.find_one({})
+            if db_graph:
+                global graph_data
+                graph_data = db_graph["data"]
+                nx_graph = load_cytoscape_to_networkx(graph_data)
+        except Exception as e:
+            logging.warning(f"Failed to load from database: {e}")
+        
+        # If still no graph, initialize with placeholder
+        if nx_graph is None:
+            initialize_placeholder_graph()
+            
+        if nx_graph is None:
             raise HTTPException(status_code=404, detail="No graph data available. Please upload graph data first.")
     
     try:
@@ -757,8 +753,25 @@ async def query_graph(query: QueryRequest):
 @api_router.get("/graph-stats")
 async def get_graph_stats():
     """Get basic statistics about the current graph"""
+    global nx_graph
+    
     if nx_graph is None:
-        raise HTTPException(status_code=404, detail="No graph data available")
+        # Try to load from database first
+        try:
+            db_graph = await db.graph_data.find_one({})
+            if db_graph:
+                global graph_data
+                graph_data = db_graph["data"]
+                nx_graph = load_cytoscape_to_networkx(graph_data)
+        except Exception as e:
+            logging.warning(f"Failed to load from database: {e}")
+        
+        # If still no graph, initialize with placeholder
+        if nx_graph is None:
+            initialize_placeholder_graph()
+            
+        if nx_graph is None:
+            raise HTTPException(status_code=404, detail="No graph data available")
     
     centrality_measures = get_centrality_measures(nx_graph)
     communities = find_communities(nx_graph)
@@ -768,11 +781,13 @@ async def get_graph_stats():
         "edges": nx_graph.number_of_edges(),
         "density": nx.density(nx_graph),
         "communities": len(set(communities.values())),
+        "is_placeholder": graph_data == PLACEHOLDER_GRAPH_DATA,
         "top_central_people": [
             {
                 "id": node,
                 "name": nx_graph.nodes.get(node, {}).get('name', node),
-                "betweenness": score
+                "department": nx_graph.nodes.get(node, {}).get('department', 'Unknown'),
+                "betweenness": round(score, 4)
             }
             for node, score in sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:10]
         ]
@@ -782,7 +797,13 @@ async def get_graph_stats():
 
 @api_router.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    return {"status": "ok", "placeholder_available": graph_data is not None}
+
+@api_router.post("/reset-to-placeholder")
+async def reset_to_placeholder():
+    """Reset graph to placeholder data for demo purposes"""
+    initialize_placeholder_graph()
+    return {"message": "Graph reset to placeholder data", "nodes": len(PLACEHOLDER_GRAPH_DATA["nodes"]), "edges": len(PLACEHOLDER_GRAPH_DATA["edges"])}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -802,6 +823,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize placeholder graph on startup"""
+    logger.info("Starting People Analytics API...")
+    
+    # Try to load existing data from database first
+    try:
+        db_graph = await db.graph_data.find_one({})
+        if db_graph:
+            global graph_data, nx_graph
+            graph_data = db_graph["data"]
+            nx_graph = load_cytoscape_to_networkx(graph_data)
+            logger.info(f"Loaded existing graph from database with {nx_graph.number_of_nodes()} nodes")
+        else:
+            # No existing data, initialize with placeholder
+            initialize_placeholder_graph()
+            logger.info("Initialized with placeholder graph data")
+    except Exception as e:
+        logger.error(f"Failed to load from database: {e}")
+        # Fallback to placeholder
+        initialize_placeholder_graph()
+        logger.info("Using placeholder graph as fallback")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
