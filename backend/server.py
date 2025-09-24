@@ -805,13 +805,60 @@ async def reset_to_placeholder():
     initialize_placeholder_graph()
     return {"message": "Graph reset to placeholder data", "nodes": len(PLACEHOLDER_GRAPH_DATA["nodes"]), "edges": len(PLACEHOLDER_GRAPH_DATA["edges"])}
 
+# Replace the CORS middleware section in your backend code with this:
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["https://people-analytics-frontend.onrender.com/"],
-    allow_methods=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://people-analytics-frontend.onrender.com",
+        "*"  # Remove this in production, but helpful for debugging
+    ],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Also add this debug route to test connectivity:
+@api_router.get("/test")
+async def test_connection():
+    """Test endpoint to verify API connectivity"""
+    return {"status": "Backend is working", "timestamp": datetime.utcnow().isoformat()}
+
+# Enhanced upload endpoint with better error logging:
+@api_router.post("/upload-graph")
+async def upload_graph(graph_upload: GraphUpload):
+    """Upload and process the organizational graph data"""
+    global graph_data, nx_graph
+    
+    try:
+        logger.info(f"Received graph upload request with {len(graph_upload.graph_data.get('nodes', []))} nodes")
+        
+        graph_data = graph_upload.graph_data
+        nx_graph = load_cytoscape_to_networkx(graph_data)
+        
+        logger.info(f"Successfully processed graph: {nx_graph.number_of_nodes()} nodes, {nx_graph.number_of_edges()} edges")
+        
+        # Store in database
+        try:
+            await db.graph_data.delete_many({})  # Clear existing data
+            await db.graph_data.insert_one({"data": graph_data, "uploaded_at": datetime.utcnow()})
+            logger.info("Graph data saved to database")
+        except Exception as db_error:
+            logger.warning(f"Database save failed (continuing anyway): {db_error}")
+        
+        stats = {
+            "nodes": nx_graph.number_of_nodes(),
+            "edges": nx_graph.number_of_edges(),
+            "density": nx.density(nx_graph)
+        }
+        
+        return {"message": "Graph uploaded successfully", "stats": stats}
+        
+    except Exception as e:
+        logger.error(f"Graph upload failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Failed to process graph: {str(e)}")
 
 # Include the router in the main app
 app.include_router(api_router)
