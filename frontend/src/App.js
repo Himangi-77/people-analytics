@@ -23,6 +23,7 @@ cytoscape.use(fcose);
 cytoscape.use(cola);
 cytoscape.use(dagre);
 
+// Fixed API configuration
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
     ? 'https://people-analytics-backend-1.onrender.com/' // Replace with your actual backend URL
@@ -45,6 +46,20 @@ function Home() {
   
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
+
+  // Test connection function
+  const testConnection = async () => {
+    try {
+      console.log('Testing connection to:', `${API}/test`);
+      const response = await fetch(`${API}/test`);
+      const result = await response.json();
+      console.log('Backend connection test:', result);
+      return true;
+    } catch (error) {
+      console.error('Backend connection failed:', error);
+      return false;
+    }
+  };
 
   // Organized sample questions by category
   const questionCategories = {
@@ -156,6 +171,9 @@ function Home() {
 
   // Initialize with sample data
   useEffect(() => {
+    console.log('Component mounted, initializing...');
+    console.log('Backend URL:', BACKEND_URL);
+    console.log('API URL:', API);
     createSampleGraph();
     loadGraphStats();
   }, []);
@@ -164,21 +182,21 @@ function Home() {
     // Create sample organizational data  
     const sampleGraphData = {
       nodes: [
-        { data: { id: '1', name: 'Alice Johnson', department: 'Engineering', title: 'Tech Lead', group: 'backend' } },
-        { data: { id: '2', name: 'Bob Chen', department: 'Engineering', title: 'Senior Developer', group: 'frontend' } },
-        { data: { id: '3', name: 'Carol Davis', department: 'Marketing', title: 'Marketing Manager', group: 'content' } },
-        { data: { id: '4', name: 'David Wilson', department: 'Sales', title: 'Sales Director', group: 'enterprise' } },
-        { data: { id: '5', name: 'Emily Brown', department: 'Engineering', title: 'DevOps Engineer', group: 'infrastructure' } },
-        { data: { id: '6', name: 'Frank Miller', department: 'Marketing', title: 'Content Specialist', group: 'content' } },
-        { data: { id: '7', name: 'Grace Lee', department: 'Sales', title: 'Account Executive', group: 'mid-market' } },
-        { data: { id: '8', name: 'Henry Garcia', department: 'Engineering', title: 'Product Manager', group: 'product' } },
-        { data: { id: '9', name: 'Iris Thompson', department: 'Marketing', title: 'Designer', group: 'creative' } },
-        { data: { id: '10', name: 'Jack Rodriguez', department: 'Sales', title: 'Sales Rep', group: 'smb' } },
-        { data: { id: '11', name: 'Karen White', department: 'HR', title: 'HR Director', group: 'people' } },
-        { data: { id: '12', name: 'Luke Anderson', department: 'Engineering', title: 'Data Scientist', group: 'analytics' } },
-        { data: { id: '13', name: 'Maria Lopez', department: 'Marketing', title: 'Social Media Manager', group: 'social' } },
-        { data: { id: '14', name: 'Nathan Clark', department: 'Sales', title: 'Customer Success', group: 'support' } },
-        { data: { id: '15', name: 'Olivia Taylor', department: 'Engineering', title: 'Security Engineer', group: 'security' } }
+        { data: { id: '1', name: 'Alice Johnson', full_name: 'Alice Johnson', department: 'Engineering', title: 'Tech Lead', group: 'backend' } },
+        { data: { id: '2', name: 'Bob Chen', full_name: 'Bob Chen', department: 'Engineering', title: 'Senior Developer', group: 'frontend' } },
+        { data: { id: '3', name: 'Carol Davis', full_name: 'Carol Davis', department: 'Marketing', title: 'Marketing Manager', group: 'content' } },
+        { data: { id: '4', name: 'David Wilson', full_name: 'David Wilson', department: 'Sales', title: 'Sales Director', group: 'enterprise' } },
+        { data: { id: '5', name: 'Emily Brown', full_name: 'Emily Brown', department: 'Engineering', title: 'DevOps Engineer', group: 'infrastructure' } },
+        { data: { id: '6', name: 'Frank Miller', full_name: 'Frank Miller', department: 'Marketing', title: 'Content Specialist', group: 'content' } },
+        { data: { id: '7', name: 'Grace Lee', full_name: 'Grace Lee', department: 'Sales', title: 'Account Executive', group: 'mid-market' } },
+        { data: { id: '8', name: 'Henry Garcia', full_name: 'Henry Garcia', department: 'Engineering', title: 'Product Manager', group: 'product' } },
+        { data: { id: '9', name: 'Iris Thompson', full_name: 'Iris Thompson', department: 'Marketing', title: 'Designer', group: 'creative' } },
+        { data: { id: '10', name: 'Jack Rodriguez', full_name: 'Jack Rodriguez', department: 'Sales', title: 'Sales Rep', group: 'smb' } },
+        { data: { id: '11', name: 'Karen White', full_name: 'Karen White', department: 'HR', title: 'HR Director', group: 'people' } },
+        { data: { id: '12', name: 'Luke Anderson', full_name: 'Luke Anderson', department: 'Engineering', title: 'Data Scientist', group: 'analytics' } },
+        { data: { id: '13', name: 'Maria Lopez', full_name: 'Maria Lopez', department: 'Marketing', title: 'Social Media Manager', group: 'social' } },
+        { data: { id: '14', name: 'Nathan Clark', full_name: 'Nathan Clark', department: 'Sales', title: 'Customer Success', group: 'support' } },
+        { data: { id: '15', name: 'Olivia Taylor', full_name: 'Olivia Taylor', department: 'Engineering', title: 'Security Engineer', group: 'security' } }
       ],
       edges: [
         { data: { id: 'e1', source: '1', target: '2', weight: 0.8, type: 'collaboration' } },
@@ -205,10 +223,20 @@ function Home() {
 
     try {
       console.log('Uploading sample graph data...');
+      console.log('API URL:', API);
+      
+      // Test connection first
+      const connectionOk = await testConnection();
+      if (!connectionOk) {
+        throw new Error('Cannot connect to backend server');
+      }
       
       const response = await fetch(`${API}/upload-graph`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ graph_data: sampleGraphData })
       });
 
@@ -226,11 +254,11 @@ function Home() {
           }
         }, 500);
       } else {
-        setError(`Failed to upload graph: ${result.detail || 'Unknown error'}`);
+        setError(`Failed to upload graph: ${result.detail || result.message || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to upload sample graph:', err);
-      setError('Failed to initialize sample data');
+      setError(`Failed to initialize sample data: ${err.message}`);
     }
   };
 
@@ -462,7 +490,10 @@ function Home() {
     try {
       const response = await fetch(`${API}/query`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ question })
       });
 
@@ -678,10 +709,18 @@ function Home() {
     if (!file) return;
 
     console.log('File selected:', file.name, file.type, file.size);
+    console.log('API URL:', API); // Debug: check API URL
+    
     setError(''); // Clear any previous errors
     setLoading(true); // Show loading state
 
     try {
+      // Test connection first
+      const connectionOk = await testConnection();
+      if (!connectionOk) {
+        throw new Error('Cannot connect to backend. Please check if the backend server is running.');
+      }
+
       // Read the file content
       const text = await file.text();
       console.log('File content read, length:', text.length);
@@ -713,15 +752,32 @@ function Home() {
       }
       
       console.log(`Graph contains ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
+      console.log('Making API call to:', `${API}/upload-graph`);
       
-      // Upload to backend
+      // Upload to backend with additional error handling
       const response = await fetch(`${API}/upload-graph`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ graph_data: graphData })
       });
 
-      const result = await response.json();
+      console.log('Upload response status:', response.status);
+      console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
+      
+      let result;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResult = await response.text();
+        console.log('Non-JSON response:', textResult);
+        throw new Error(`Server returned non-JSON response: ${textResult}`);
+      }
+      
       console.log('Upload response:', result);
 
       if (response.ok) {
@@ -735,13 +791,20 @@ function Home() {
         initializeGraph(graphData);
         loadGraphStats();
       } else {
-        setError(`Upload failed: ${result.detail || 'Unknown error'}`);
+        const errorMessage = result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`;
+        setError(`Upload failed: ${errorMessage}`);
         console.error('Upload failed:', result);
       }
     } catch (err) {
       console.error('File upload error:', err);
+      
+      // More specific error messages
       if (err.name === 'SyntaxError') {
         setError('Invalid JSON file format. Please check your file structure.');
+      } else if (err.message.includes('fetch')) {
+        setError(`Network error: Cannot connect to backend at ${API}. Please check if the backend server is running.`);
+      } else if (err.message.includes('CORS')) {
+        setError('CORS error: Backend is not configured to accept requests from this domain.');
       } else {
         setError(`Upload error: ${err.message}`);
       }
