@@ -23,7 +23,11 @@ cytoscape.use(fcose);
 cytoscape.use(cola);
 cytoscape.use(dagre);
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://people-analytics-backend-1.onrender.com/' // Replace with your actual backend URL
+    : 'http://localhost:8000');
+
 const API = `${BACKEND_URL}/api`;
 
 function Home() {
