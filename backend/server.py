@@ -542,7 +542,7 @@ async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
                     "content": analysis_text
                 }
             ],
-            temperature=0.7,
+            temperature=0,
             max_tokens=1500
         )
         
