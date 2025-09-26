@@ -454,11 +454,12 @@ function Home() {
         {
           selector: 'edge',
           style: {
-            'width': (edge) => (edge.data('weight') || 0.5) * 4,
+            'width': 2,
             'line-color': '#94A3B8',
             'target-arrow-color': '#94A3B8',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
+            'arrow-scale': 0.6
             'opacity': 0.7
           }
         },
