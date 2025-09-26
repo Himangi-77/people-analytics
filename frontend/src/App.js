@@ -459,7 +459,7 @@ function Home() {
             'target-arrow-color': '#94A3B8',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
-            'arrow-scale': 0.6
+            'arrow-scale': 0.6,
             'opacity': 0.7
           }
         },
