@@ -477,54 +477,190 @@ def format_analysis_response(response: str) -> str:
 async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
     """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
     try:
-        # For placeholder/demo purposes, return a formatted analysis without actual AI call
-        # Uncomment the actual AI implementation when you have the LLM setup
+        # Check if OpenAI API key is available
+        openai_api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not openai_api_key:
+            logging.warning("OPENAI_API_KEY not found, using placeholder response")
+            return generate_placeholder_response(question, graph_analysis)
         
-        placeholder_response = f"""
-        **Network Analysis Summary**
+        # Initialize OpenAI client
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=openai_api_key)
         
-        Based on your question: "{question}"
-        
-        **Key Findings:**
-        
-        The organizational network shows *{graph_analysis.get('total_nodes', 0)} people* connected through *{graph_analysis.get('total_edges', 0)} relationships*.
-        
-        **Top Influencers (PageRank Analysis):**
-        {chr(10).join([f"• **{inf['name']}** ({inf['department']}) - *PageRank: {inf['score']}*" for inf in graph_analysis.get('influencers_analysis', {}).get('top_influencers', [])[:3]])}
-        
-        **Key Connectors (Betweenness Analysis):**
-        {chr(10).join([f"• **{conn['name']}** ({conn['department']}) - *Betweenness: {conn['score']}*" for conn in graph_analysis.get('connectors_analysis', {}).get('top_connectors', [])[:3]])}
-        
-        **Network Density:** *{graph_analysis.get('density', 0):.3f}* - This indicates {"a highly connected" if graph_analysis.get('density', 0) > 0.3 else "a moderately connected" if graph_analysis.get('density', 0) > 0.1 else "a sparse"} network structure.
-        
-        **Recommendations:**
-        - Monitor key connectors as they bridge different parts of the organization
-        - Consider developing backup pathways for critical communication flows
-        - Leverage informal leaders for change management initiatives
-        
-        **Note:** This is a demonstration analysis. Enable AI integration for detailed insights.
+        # Prepare detailed analysis text for the LLM
+        analysis_text = f"""
+        ORGANIZATIONAL NETWORK ANALYSIS REQUEST
+
+        User Question: {question}
+
+        NETWORK OVERVIEW:
+        - Total People: {graph_analysis.get('total_nodes', 0)}
+        - Total Connections: {graph_analysis.get('total_edges', 0)}
+        - Network Density: {graph_analysis.get('density', 0):.3f}
+        - Communities Detected: {graph_analysis.get('communities_count', 0)}
+
+        TOP INFLUENCERS (PageRank Analysis):
+        {format_top_people_for_llm(graph_analysis.get('influencers_analysis', {}).get('top_influencers', []))}
+
+        TOP CONNECTORS (Betweenness Centrality):
+        {format_top_people_for_llm(graph_analysis.get('connectors_analysis', {}).get('top_connectors', []))}
+
+        LEADERSHIP ANALYSIS:
+        - Formal Leaders: {graph_analysis.get('leadership_breakdown', {}).get('formal_leaders_count', 0)}
+        - Informal Leaders: {graph_analysis.get('leadership_breakdown', {}).get('informal_leaders_count', 0)}
+
+        DEPARTMENT ANALYSIS:
+        {format_department_analysis_for_llm(graph_analysis.get('dept_analysis', {}))}
+
+        DIVERSITY & INCLUSION:
+        {format_diversity_analysis_for_llm(graph_analysis.get('diversity_analysis', {}))}
+
+        RISK FACTORS:
+        - Critical Connectors: {graph_analysis.get('risk_analysis', {}).get('critical_connectors_count', 0)}
+        - Vulnerable Departments: {', '.join(graph_analysis.get('risk_analysis', {}).get('vulnerable_departments', []))}
+
+        Please provide a comprehensive analysis addressing the user's question with specific insights, actionable recommendations, and key findings based on this organizational network data.
         """
         
-        return placeholder_response.strip()
+        # Make API call to OpenAI
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": """You are an expert organizational network analyst and consultant. Your expertise includes:
+                    - Social Network Analysis and organizational behavior
+                    - Leadership development and succession planning
+                    - Change management and organizational transformation
+                    - Diversity, equity, and inclusion in workplace networks
+                    - Risk management and organizational resilience
+                    
+                    Provide detailed, actionable insights that help organizations understand their informal networks, identify key players, spot risks, and optimize collaboration. Use specific data points and metrics in your analysis. Format your response with clear sections, bullet points where appropriate, and bold headers for readability."""
+                },
+                {
+                    "role": "user",
+                    "content": analysis_text
+                }
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
         
-        # Actual AI implementation (commented out for placeholder functionality)
-        """
-        # Initialize LLM chat
-        chat = LlmChat(
-            api_key=os.environ.get('EMERGENT_LLM_KEY'),
-            session_id=f"graph_analysis_{uuid.uuid4()}",
-            system_message="You are an expert organizational network analyst..."
-        ).with_model("openai", "gpt-4o")
-        
-        user_message = UserMessage(text=analysis_text)
-        response = await chat.send_message(user_message)
-        
-        return format_analysis_response(response)
-        """
+        ai_response = response.choices[0].message.content
+        return format_analysis_response(ai_response)
         
     except Exception as e:
         logging.error(f"AI analysis failed: {e}")
-        return f"**Analysis Summary**\n\nBased on the network analysis, here are the key findings for your question about organizational dynamics and collaboration patterns. Network shows *{graph_analysis.get('total_nodes', 0)} people* with *{graph_analysis.get('total_edges', 0)} connections*."
+        # Fallback to placeholder if AI fails
+        return generate_placeholder_response(question, graph_analysis)
+
+def format_top_people_for_llm(people_list):
+    """Format top people list for LLM consumption"""
+    if not people_list:
+        return "No data available"
+    
+    formatted = []
+    for person in people_list[:5]:  # Top 5
+        name = person.get('name', 'Unknown')
+        dept = person.get('department', 'Unknown')
+        title = person.get('title', 'Unknown')
+        score = person.get('score', person.get('pagerank_score', person.get('betweenness_score', 0)))
+        formatted.append(f"- {name} ({dept}, {title}) - Score: {score}")
+    
+    return '\n'.join(formatted)
+
+def format_department_analysis_for_llm(dept_data):
+    """Format department analysis for LLM"""
+    if not dept_data:
+        return "No department data available"
+    
+    connections = dept_data.get('connections', {})
+    internal = dept_data.get('internal', {})
+    
+    result = []
+    for dept, ext_connections in connections.items():
+        int_connections = internal.get(dept, 0)
+        result.append(f"- {dept}: {ext_connections} external connections, {int_connections} internal connections")
+    
+    return '\n'.join(result) if result else "No department analysis available"
+
+def format_diversity_analysis_for_llm(diversity_data):
+    """Format diversity analysis for LLM"""
+    if not diversity_data:
+        return "No diversity data available"
+    
+    gender_centrality = diversity_data.get('gender_avg_centrality', {})
+    hierarchy_centrality = diversity_data.get('hierarchy_avg_centrality', {})
+    
+    result = []
+    
+    if gender_centrality:
+        result.append("Gender Centrality Distribution:")
+        for gender, avg_centrality in gender_centrality.items():
+            result.append(f"- {gender}: {avg_centrality:.3f} average centrality")
+    
+    if hierarchy_centrality:
+        result.append("\nHierarchy Level Centrality:")
+        for level, avg_centrality in hierarchy_centrality.items():
+            result.append(f"- Level {level}: {avg_centrality:.3f} average centrality")
+    
+    return '\n'.join(result) if result else "No diversity analysis available"
+
+def generate_placeholder_response(question: str, graph_analysis: Dict) -> str:
+    """Generate placeholder response when AI is not available"""
+    return f"""
+    **Network Analysis Summary**
+    
+    Based on your question: "{question}"
+    
+    **Key Findings:**
+    
+    The organizational network shows *{graph_analysis.get('total_nodes', 0)} people* connected through *{graph_analysis.get('total_edges', 0)} relationships*.
+    
+    **Top Influencers (PageRank Analysis):**
+    {format_placeholder_influencers(graph_analysis.get('influencers_analysis', {}).get('top_influencers', []))}
+    
+    **Key Connectors (Betweenness Analysis):**
+    {format_placeholder_connectors(graph_analysis.get('connectors_analysis', {}).get('top_connectors', []))}
+    
+    **Network Density:** *{graph_analysis.get('density', 0):.3f}* - This indicates {"a highly connected" if graph_analysis.get('density', 0) > 0.3 else "a moderately connected" if graph_analysis.get('density', 0) > 0.1 else "a sparse"} network structure.
+    
+    **Recommendations:**
+    - Monitor key connectors as they bridge different parts of the organization
+    - Consider developing backup pathways for critical communication flows
+    - Leverage informal leaders for change management initiatives
+    
+    **Note:** Enable OpenAI API integration by setting OPENAI_API_KEY environment variable for detailed AI-powered insights.
+    """.strip()
+
+def format_placeholder_influencers(influencers):
+    """Format influencers for placeholder response"""
+    if not influencers:
+        return "• No influencer data available"
+    
+    result = []
+    for inf in influencers[:3]:
+        name = inf.get('name', 'Unknown')
+        dept = inf.get('department', 'Unknown')
+        score = inf.get('pagerank_score', inf.get('score', 0))
+        result.append(f"• **{name}** ({dept}) - *PageRank: {score}*")
+    
+    return '\n'.join(result)
+
+def format_placeholder_connectors(connectors):
+    """Format connectors for placeholder response"""
+    if not connectors:
+        return "• No connector data available"
+    
+    result = []
+    for conn in connectors[:3]:
+        name = conn.get('name', 'Unknown')
+        dept = conn.get('department', 'Unknown')
+        score = conn.get('betweenness_score', conn.get('score', 0))
+        result.append(f"• **{name}** ({dept}) - *Betweenness: {score}*")
+    
+    return '\n'.join(result)
+
 
 def create_subgraph_for_question(G, question: str, centrality_measures: Dict) -> Dict:
     """Create a relevant subgraph based on the question type"""
