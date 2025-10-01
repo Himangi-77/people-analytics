@@ -274,49 +274,124 @@ function Home() {
     }
   };
 
-  const getNodeColor = (node, colorBy) => {
-    const data = node.data();
-    
-    switch (colorBy) {
-      case 'department':
-        const deptColors = {
-          'HDFC': '#3B82F6',
-          'Engineering': '#10B981',
-          'Marketing': '#EF4444',
-          'Sales': '#F59E0B',
-          'HR': '#8B5CF6',
-          'Finance': '#EC4899'
-        };
-        return deptColors[data.department] || '#6B7280';
-      
-      case 'gender':
-        return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
-      
-      case 'hierarchy_level':
-        const level = data.hierarchy_level || 5;
-        const levelColors = ['#DC2626', '#EA580C', '#D97706', '#CA8A04', '#65A30D', '#16A34A', '#059669', '#0891B2'];
-        return levelColors[Math.min(level - 1, 7)] || '#6B7280';
-      
-      case 'tenure_status':
-        const statusColors = {
-          'new hire': '#EF4444',
-          'tenured': '#10B981',
-          'senior': '#3B82F6'
-        };
-        return statusColors[data.tenure_status] || '#6B7280';
-      
-      case 'rating':
-        const rating = data.rating || 5;
-        if (rating >= 9) return '#10B981';
-        if (rating >= 7) return '#F59E0B';
-        if (rating >= 5) return '#EF4444';
-        return '#6B7280';
-      
-      default:
-        return '#6B7280';
-    }
-  };
+  // Store color mappings
+const colorCaches = {
+  department: new Map(),
+  hierarchy_level: new Map(),
+  tenure_status: new Map()
+};
 
+// Generate a diverse color palette
+const generateColorPalette = (count) => {
+  const colors = [];
+  const saturation = 65;
+  const lightness = 55;
+  
+  for (let i = 0; i < count; i++) {
+    const hue = (i * 360 / count) % 360;
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  
+  return colors;
+};
+
+// Generate gradient colors for hierarchy levels (darker to lighter)
+const generateHierarchyGradient = (count) => {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const lightness = 30 + (i * 40 / count); // From 30% to 70% lightness
+    colors.push(`hsl(220, 70%, ${lightness}%)`);
+  }
+  return colors;
+};
+
+const getNodeColor = (node, colorBy, cy) => {
+  const data = node.data();
+  
+  switch (colorBy) {
+    case 'department': {
+      // Initialize colors if not already done
+      if (colorCaches.department.size === 0) {
+        const departments = new Set();
+        cy.nodes().forEach(n => {
+          const dept = n.data('department');
+          if (dept) departments.add(dept);
+        });
+        
+        const deptArray = Array.from(departments).sort();
+        const colors = generateColorPalette(deptArray.length);
+        
+        deptArray.forEach((dept, index) => {
+          colorCaches.department.set(dept, colors[index]);
+        });
+      }
+      return colorCaches.department.get(data.department) || '#6B7280';
+    }
+    
+    case 'gender':
+      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
+    
+    case 'hierarchy_level': {
+      // Initialize colors if not already done
+      if (colorCaches.hierarchy_level.size === 0) {
+        const levels = new Set();
+        cy.nodes().forEach(n => {
+          const level = n.data('hierarchy_level');
+          if (level !== undefined && level !== null) levels.add(level);
+        });
+        
+        const levelArray = Array.from(levels).sort((a, b) => a - b);
+        const colors = generateHierarchyGradient(levelArray.length);
+        
+        levelArray.forEach((level, index) => {
+          colorCaches.hierarchy_level.set(level, colors[index]);
+        });
+      }
+      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
+    }
+    
+    case 'tenure_status': {
+      // Initialize colors if not already done
+      if (colorCaches.tenure_status.size === 0) {
+        const statuses = new Set();
+        cy.nodes().forEach(n => {
+          const status = n.data('tenure_status');
+          if (status) statuses.add(status);
+        });
+        
+        const statusArray = Array.from(statuses).sort();
+        const colors = generateColorPalette(statusArray.length);
+        
+        statusArray.forEach((status, index) => {
+          colorCaches.tenure_status.set(status, colors[index]);
+        });
+      }
+      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
+    }
+    
+    case 'rating': {
+      const rating = data.rating || 5;
+      if (rating >= 9) return '#10B981';
+      if (rating >= 7) return '#F59E0B';
+      if (rating >= 5) return '#EF4444';
+      return '#6B7280';
+    }
+    
+    default:
+      return '#6B7280';
+  }
+};
+
+// Call this when you need to reset colors (e.g., when loading new data)
+const resetAllColors = () => {
+  colorCaches.department.clear();
+  colorCaches.hierarchy_level.clear();
+  colorCaches.tenure_status.clear();
+};
+
+// Export functions
+export { getNodeColor, resetAllColors };
+  
   const getNodeSize = (node, sizeBy) => {
     const data = node.data();
     let value = 0;
