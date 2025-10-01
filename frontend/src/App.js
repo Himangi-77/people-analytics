@@ -65,12 +65,13 @@ const generateHierarchyGradient = (count) => {
   return colors;
 };
 
-const getNodeColor = (node, colorBy, cy) => {
-  const data = node.data();
+// Initialize color caches for a given color scheme
+const initializeColorCache = (cy, colorBy) => {
+  if (!cy) return;
   
   switch (colorBy) {
     case 'department': {
-      if (colorCaches.department.size === 0 && cy) {
+      if (colorCaches.department.size === 0) {
         const departments = new Set();
         cy.nodes().forEach(n => {
           const dept = n.data('department');
@@ -84,14 +85,11 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.department.set(dept, colors[index]);
         });
       }
-      return colorCaches.department.get(data.department) || '#6B7280';
+      break;
     }
     
-    case 'gender':
-      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
-    
     case 'hierarchy_level': {
-      if (colorCaches.hierarchy_level.size === 0 && cy) {
+      if (colorCaches.hierarchy_level.size === 0) {
         const levels = new Set();
         cy.nodes().forEach(n => {
           const level = n.data('hierarchy_level');
@@ -105,11 +103,11 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.hierarchy_level.set(level, colors[index]);
         });
       }
-      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
+      break;
     }
     
     case 'tenure_status': {
-      if (colorCaches.tenure_status.size === 0 && cy) {
+      if (colorCaches.tenure_status.size === 0) {
         const statuses = new Set();
         cy.nodes().forEach(n => {
           const status = n.data('tenure_status');
@@ -123,11 +121,11 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.tenure_status.set(status, colors[index]);
         });
       }
-      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
+      break;
     }
     
     case 'group_name1': {
-      if (colorCaches.group_name1.size === 0 && cy) {
+      if (colorCaches.group_name1.size === 0) {
         const groups = new Set();
         cy.nodes().forEach(n => {
           const group = n.data('group_name1');
@@ -141,11 +139,11 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.group_name1.set(group, colors[index]);
         });
       }
-      return colorCaches.group_name1.get(data.group_name1) || '#6B7280';
+      break;
     }
     
     case 'group_name2': {
-      if (colorCaches.group_name2.size === 0 && cy) {
+      if (colorCaches.group_name2.size === 0) {
         const groups = new Set();
         cy.nodes().forEach(n => {
           const group = n.data('group_name2');
@@ -159,11 +157,11 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.group_name2.set(group, colors[index]);
         });
       }
-      return colorCaches.group_name2.get(data.group_name2) || '#6B7280';
+      break;
     }
     
     case 'location': {
-      if (colorCaches.location.size === 0 && cy) {
+      if (colorCaches.location.size === 0) {
         const locations = new Set();
         cy.nodes().forEach(n => {
           const loc = n.data('location');
@@ -177,6 +175,45 @@ const getNodeColor = (node, colorBy, cy) => {
           colorCaches.location.set(loc, colors[index]);
         });
       }
+      break;
+    }
+  }
+};
+
+const getNodeColor = (node, colorBy, cy) => {
+  const data = node.data();
+  
+  switch (colorBy) {
+    case 'department': {
+      initializeColorCache(cy, 'department');
+      return colorCaches.department.get(data.department) || '#6B7280';
+    }
+    
+    case 'gender':
+      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
+    
+    case 'hierarchy_level': {
+      initializeColorCache(cy, 'hierarchy_level');
+      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
+    }
+    
+    case 'tenure_status': {
+      initializeColorCache(cy, 'tenure_status');
+      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
+    }
+    
+    case 'group_name1': {
+      initializeColorCache(cy, 'group_name1');
+      return colorCaches.group_name1.get(data.group_name1) || '#6B7280';
+    }
+    
+    case 'group_name2': {
+      initializeColorCache(cy, 'group_name2');
+      return colorCaches.group_name2.get(data.group_name2) || '#6B7280';
+    }
+    
+    case 'location': {
+      initializeColorCache(cy, 'location');
       return colorCaches.location.get(data.location) || '#6B7280';
     }
     
@@ -203,7 +240,12 @@ const resetAllColors = () => {
 };
 
 // Get legend items for current color scheme
-const getLegendItems = (colorBy) => {
+const getLegendItems = (colorBy, cy) => {
+  // Initialize the cache first if cy is available
+  if (cy) {
+    initializeColorCache(cy, colorBy);
+  }
+  
   switch (colorBy) {
     case 'department':
       return Array.from(colorCaches.department.entries()).map(([key, color]) => ({ label: key, color }));
@@ -212,7 +254,7 @@ const getLegendItems = (colorBy) => {
       return [
         { label: 'Male', color: '#3B82F6' },
         { label: 'Female', color: '#EC4899' },
-        { label: 'Other', color: '#6B7280' }
+        { label: 'Other/Unknown', color: '#6B7280' }
       ];
     
     case 'hierarchy_level':
@@ -386,13 +428,12 @@ function Home() {
     loadGraphStats();
   }, []);
 
-  // Update legend when color scheme changes
-  useEffect(() => {
+  const updateLegend = () => {
     if (cyRef.current) {
-      const items = getLegendItems(nodeColorBy);
+      const items = getLegendItems(nodeColorBy, cyRef.current);
       setLegendItems(items);
     }
-  }, [nodeColorBy]);
+  };
 
   const createSampleGraph = async () => {
     const sampleGraphData = {
@@ -596,37 +637,6 @@ function Home() {
       elements: elements,
       style: [
         {
-          selector: 'node',
-          style: {
-            'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
-            'label': (node) => getNodeLabel(node, nodeLabelBy),
-            'width': (node) => getNodeSize(node, nodeSizeBy),
-            'height': (node) => getNodeSize(node, nodeSizeBy),
-            'font-size': '10px',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'color': '#ffffff',
-            'text-outline-color': '#000000',
-            'text-outline-width': 1,
-            'border-width': 2,
-            'border-color': '#ffffff',
-            'text-wrap': 'ellipsis',
-            'text-max-width': '60px'
-          }
-        },
-        {
-          selector: 'edge',
-          style: {
-            'width': 2,
-            'line-color': '#94A3B8',
-            'target-arrow-color': '#94A3B8',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'arrow-scale': 0.6,
-            'opacity': 0.7
-          }
-        },
-        {
           selector: 'node:selected',
           style: {
             'border-color': '#FCD34D',
@@ -643,8 +653,9 @@ function Home() {
     });
 
     // Update legend after graph is initialized
-    const items = getLegendItems(nodeColorBy);
-    setLegendItems(items);
+    setTimeout(() => {
+      updateLegend();
+    }, 100);
   };
 
   const handleQuery = async (e) => {
@@ -1211,8 +1222,7 @@ function Home() {
                       cyRef.current.style().selector('node').style({
                         'background-color': (node) => getNodeColor(node, value, cyRef.current)
                       }).update();
-                      const items = getLegendItems(value);
-                      setLegendItems(items);
+                      updateLegend();
                     }
                   }}>
                     <SelectTrigger className="w-full">
@@ -1256,19 +1266,19 @@ function Home() {
 
                 {/* Color Legend */}
                 {legendItems.length > 0 && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <h4 className="text-xs font-semibold text-gray-700 mb-3 flex items-center">
+                  <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h4 className="text-xs font-semibold text-gray-800 mb-3 flex items-center">
                       <Palette className="h-3 w-3 mr-1" />
-                      Color Legend
+                      Color Legend - {coloringOptions.find(o => o.value === nodeColorBy)?.label}
                     </h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                       {legendItems.map((item, idx) => (
-                        <div key={idx} className="flex items-center space-x-2">
+                        <div key={idx} className="flex items-center space-x-2 bg-white px-2 py-1.5 rounded shadow-sm">
                           <div 
-                            className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
+                            className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0 shadow-sm"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-xs text-gray-700 truncate">{item.label}</span>
+                          <span className="text-xs text-gray-800 font-medium truncate flex-1">{item.label}</span>
                         </div>
                       ))}
                     </div>
