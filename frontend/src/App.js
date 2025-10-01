@@ -26,10 +26,181 @@ cytoscape.use(dagre);
 // Fixed API configuration
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://people-analytics-backend-1.onrender.com/' // Replace with your actual backend URL
+    ? 'https://people-analytics-backend-1.onrender.com/'
     : 'http://localhost:8000');
 
 const API = `${BACKEND_URL}/api`;
+
+// Store color mappings outside component to persist across renders
+const colorCaches = {
+  department: new Map(),
+  hierarchy_level: new Map(),
+  tenure_status: new Map(),
+  group_name1: new Map(),
+  group_name2: new Map(),
+  location: new Map()
+};
+
+// Generate a diverse color palette
+const generateColorPalette = (count) => {
+  const colors = [];
+  const saturation = 65;
+  const lightness = 55;
+  
+  for (let i = 0; i < count; i++) {
+    const hue = (i * 360 / count) % 360;
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  
+  return colors;
+};
+
+// Generate gradient colors for hierarchy levels (darker to lighter)
+const generateHierarchyGradient = (count) => {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const lightness = 30 + (i * 40 / count);
+    colors.push(`hsl(220, 70%, ${lightness}%)`);
+  }
+  return colors;
+};
+
+const getNodeColor = (node, colorBy, cy) => {
+  const data = node.data();
+  
+  switch (colorBy) {
+    case 'department': {
+      if (colorCaches.department.size === 0 && cy) {
+        const departments = new Set();
+        cy.nodes().forEach(n => {
+          const dept = n.data('department');
+          if (dept) departments.add(dept);
+        });
+        
+        const deptArray = Array.from(departments).sort();
+        const colors = generateColorPalette(deptArray.length);
+        
+        deptArray.forEach((dept, index) => {
+          colorCaches.department.set(dept, colors[index]);
+        });
+      }
+      return colorCaches.department.get(data.department) || '#6B7280';
+    }
+    
+    case 'gender':
+      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
+    
+    case 'hierarchy_level': {
+      if (colorCaches.hierarchy_level.size === 0 && cy) {
+        const levels = new Set();
+        cy.nodes().forEach(n => {
+          const level = n.data('hierarchy_level');
+          if (level !== undefined && level !== null) levels.add(level);
+        });
+        
+        const levelArray = Array.from(levels).sort((a, b) => a - b);
+        const colors = generateHierarchyGradient(levelArray.length);
+        
+        levelArray.forEach((level, index) => {
+          colorCaches.hierarchy_level.set(level, colors[index]);
+        });
+      }
+      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
+    }
+    
+    case 'tenure_status': {
+      if (colorCaches.tenure_status.size === 0 && cy) {
+        const statuses = new Set();
+        cy.nodes().forEach(n => {
+          const status = n.data('tenure_status');
+          if (status) statuses.add(status);
+        });
+        
+        const statusArray = Array.from(statuses).sort();
+        const colors = generateColorPalette(statusArray.length);
+        
+        statusArray.forEach((status, index) => {
+          colorCaches.tenure_status.set(status, colors[index]);
+        });
+      }
+      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
+    }
+    
+    case 'group_name1': {
+      if (colorCaches.group_name1.size === 0 && cy) {
+        const groups = new Set();
+        cy.nodes().forEach(n => {
+          const group = n.data('group_name1');
+          if (group) groups.add(group);
+        });
+        
+        const groupArray = Array.from(groups).sort();
+        const colors = generateColorPalette(groupArray.length);
+        
+        groupArray.forEach((group, index) => {
+          colorCaches.group_name1.set(group, colors[index]);
+        });
+      }
+      return colorCaches.group_name1.get(data.group_name1) || '#6B7280';
+    }
+    
+    case 'group_name2': {
+      if (colorCaches.group_name2.size === 0 && cy) {
+        const groups = new Set();
+        cy.nodes().forEach(n => {
+          const group = n.data('group_name2');
+          if (group) groups.add(group);
+        });
+        
+        const groupArray = Array.from(groups).sort();
+        const colors = generateColorPalette(groupArray.length);
+        
+        groupArray.forEach((group, index) => {
+          colorCaches.group_name2.set(group, colors[index]);
+        });
+      }
+      return colorCaches.group_name2.get(data.group_name2) || '#6B7280';
+    }
+    
+    case 'location': {
+      if (colorCaches.location.size === 0 && cy) {
+        const locations = new Set();
+        cy.nodes().forEach(n => {
+          const loc = n.data('location');
+          if (loc) locations.add(loc);
+        });
+        
+        const locationArray = Array.from(locations).sort();
+        const colors = generateColorPalette(locationArray.length);
+        
+        locationArray.forEach((loc, index) => {
+          colorCaches.location.set(loc, colors[index]);
+        });
+      }
+      return colorCaches.location.get(data.location) || '#6B7280';
+    }
+    
+    case 'rating': {
+      const rating = data.rating || 5;
+      if (rating >= 9) return '#10B981';
+      if (rating >= 7) return '#F59E0B';
+      if (rating >= 5) return '#EF4444';
+      return '#6B7280';
+    }
+    
+    default:
+      return '#6B7280';
+  }
+};
+
+const resetAllColors = () => {
+  colorCaches.department.clear();
+  colorCaches.hierarchy_level.clear();
+  colorCaches.tenure_status.clear();
+  colorCaches.group_name1.clear();
+  colorCaches.group_name2.clear();
+  colorCaches.location.clear();
+};
 
 function Home() {
   const [question, setQuestion] = useState('');
@@ -47,7 +218,6 @@ function Home() {
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
 
-  // Test connection function
   const testConnection = async () => {
     try {
       console.log('Testing connection to:', `${API}/test`);
@@ -61,7 +231,6 @@ function Home() {
     }
   };
 
-  // Organized sample questions by category
   const questionCategories = {
     'leadership': {
       title: 'Leadership & Influence',
@@ -114,7 +283,6 @@ function Home() {
     }
   };
 
-  // Node sizing options
   const sizingOptions = [
     { value: 'degree', label: 'Degree (Connections)' },
     { value: 'betweenness', label: 'Betweenness Centrality' },
@@ -126,7 +294,6 @@ function Home() {
     { value: 'hierarchy_level', label: 'Hierarchy Level' }
   ];
 
-  // Node coloring options
   const coloringOptions = [
     { value: 'department', label: 'Department' },
     { value: 'gender', label: 'Gender' },
@@ -138,7 +305,6 @@ function Home() {
     { value: 'rating', label: 'Performance Rating' }
   ];
 
-  // Graph layout options
   const layoutOptions = [
     { value: 'cose-bilkent', label: 'Force-Directed (Cose-Bilkent)', description: 'Natural clustering with good separation' },
     { value: 'cose', label: 'Force-Directed (Cose)', description: 'Simple force-directed layout' },
@@ -152,7 +318,6 @@ function Home() {
     { value: 'random', label: 'Random', description: 'Random positioning' }
   ];
 
-  // Node label options
   const labelOptions = [
     { value: 'full_name', label: 'Full Name' },
     { value: 'first_name', label: 'First Name' },
@@ -169,7 +334,6 @@ function Home() {
     { value: 'none', label: 'No Labels' }
   ];
 
-  // Initialize with sample data
   useEffect(() => {
     console.log('Component mounted, initializing...');
     console.log('Backend URL:', BACKEND_URL);
@@ -179,7 +343,6 @@ function Home() {
   }, []);
 
   const createSampleGraph = async () => {
-    // Create sample organizational data  
     const sampleGraphData = {
       nodes: [
         { data: { id: '1', name: 'Alice Johnson', full_name: 'Alice Johnson', department: 'Engineering', title: 'Tech Lead', group: 'backend' } },
@@ -223,9 +386,6 @@ function Home() {
 
     try {
       console.log('Uploading sample graph data...');
-      console.log('API URL:', API);
-      
-      // Test connection first
       const connectionOk = await testConnection();
       if (!connectionOk) {
         throw new Error('Cannot connect to backend server');
@@ -247,9 +407,9 @@ function Home() {
         setGraphUploaded(true);
         setError('');
         
-        // Initialize visualization with a delay to ensure container is ready
         setTimeout(() => {
           if (graphContainerRef.current) {
+            resetAllColors();
             initializeGraph(sampleGraphData);
           }
         }, 500);
@@ -273,124 +433,6 @@ function Home() {
       console.error('Failed to load graph stats:', err);
     }
   };
-
-  // Store color mappings
-const colorCaches = {
-  department: new Map(),
-  hierarchy_level: new Map(),
-  tenure_status: new Map()
-};
-
-// Generate a diverse color palette
-const generateColorPalette = (count) => {
-  const colors = [];
-  const saturation = 65;
-  const lightness = 55;
-  
-  for (let i = 0; i < count; i++) {
-    const hue = (i * 360 / count) % 360;
-    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
-  }
-  
-  return colors;
-};
-
-// Generate gradient colors for hierarchy levels (darker to lighter)
-const generateHierarchyGradient = (count) => {
-  const colors = [];
-  for (let i = 0; i < count; i++) {
-    const lightness = 30 + (i * 40 / count); // From 30% to 70% lightness
-    colors.push(`hsl(220, 70%, ${lightness}%)`);
-  }
-  return colors;
-};
-
-const getNodeColor = (node, colorBy, cy) => {
-  const data = node.data();
-  
-  switch (colorBy) {
-    case 'department': {
-      // Initialize colors if not already done
-      if (colorCaches.department.size === 0) {
-        const departments = new Set();
-        cy.nodes().forEach(n => {
-          const dept = n.data('department');
-          if (dept) departments.add(dept);
-        });
-        
-        const deptArray = Array.from(departments).sort();
-        const colors = generateColorPalette(deptArray.length);
-        
-        deptArray.forEach((dept, index) => {
-          colorCaches.department.set(dept, colors[index]);
-        });
-      }
-      return colorCaches.department.get(data.department) || '#6B7280';
-    }
-    
-    case 'gender':
-      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
-    
-    case 'hierarchy_level': {
-      // Initialize colors if not already done
-      if (colorCaches.hierarchy_level.size === 0) {
-        const levels = new Set();
-        cy.nodes().forEach(n => {
-          const level = n.data('hierarchy_level');
-          if (level !== undefined && level !== null) levels.add(level);
-        });
-        
-        const levelArray = Array.from(levels).sort((a, b) => a - b);
-        const colors = generateHierarchyGradient(levelArray.length);
-        
-        levelArray.forEach((level, index) => {
-          colorCaches.hierarchy_level.set(level, colors[index]);
-        });
-      }
-      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
-    }
-    
-    case 'tenure_status': {
-      // Initialize colors if not already done
-      if (colorCaches.tenure_status.size === 0) {
-        const statuses = new Set();
-        cy.nodes().forEach(n => {
-          const status = n.data('tenure_status');
-          if (status) statuses.add(status);
-        });
-        
-        const statusArray = Array.from(statuses).sort();
-        const colors = generateColorPalette(statusArray.length);
-        
-        statusArray.forEach((status, index) => {
-          colorCaches.tenure_status.set(status, colors[index]);
-        });
-      }
-      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
-    }
-    
-    case 'rating': {
-      const rating = data.rating || 5;
-      if (rating >= 9) return '#10B981';
-      if (rating >= 7) return '#F59E0B';
-      if (rating >= 5) return '#EF4444';
-      return '#6B7280';
-    }
-    
-    default:
-      return '#6B7280';
-  }
-};
-
-// Call this when you need to reset colors (e.g., when loading new data)
-const resetAllColors = () => {
-  colorCaches.department.clear();
-  colorCaches.hierarchy_level.clear();
-  colorCaches.tenure_status.clear();
-};
-
-// Export functions
-export { getNodeColor, resetAllColors };
   
   const getNodeSize = (node, sizeBy) => {
     const data = node.data();
@@ -426,7 +468,7 @@ export { getNodeColor, resetAllColors };
         return Math.max(20, Math.min(80, value * 6 + 20));
       
       case 'hierarchy_level':
-        value = 8 - (data.hierarchy_level || 5); // Invert so higher levels are bigger
+        value = 8 - (data.hierarchy_level || 5);
         return Math.max(20, Math.min(80, value * 8 + 20));
       
       default:
@@ -458,7 +500,6 @@ export { getNodeColor, resetAllColors };
       
       case 'email':
         const email = data.email || '';
-        // Show only the part before @ for readability
         return email.includes('@') ? email.split('@')[0] : email;
       
       case 'group_name1':
@@ -489,20 +530,15 @@ export { getNodeColor, resetAllColors };
 
     console.log('Initializing graph with data:', graphData);
 
-    // Clear existing graph
     if (cyRef.current) {
       cyRef.current.destroy();
     }
 
-    // Prepare elements for Cytoscape
     const elements = [
       ...graphData.nodes,
       ...graphData.edges
     ];
 
-    console.log('Elements for Cytoscape:', elements);
-
-    // Create new cytoscape instance
     cyRef.current = cytoscape({
       container: graphContainerRef.current,
       elements: elements,
@@ -510,7 +546,7 @@ export { getNodeColor, resetAllColors };
         {
           selector: 'node',
           style: {
-            'background-color': (node) => getNodeColor(node, nodeColorBy),
+            'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
             'label': (node) => getNodeLabel(node, nodeLabelBy),
             'width': (node) => getNodeSize(node, nodeSizeBy),
             'height': (node) => getNodeSize(node, nodeSizeBy),
@@ -549,7 +585,6 @@ export { getNodeColor, resetAllColors };
       layout: getLayoutConfig(graphLayout)
     });
 
-    // Add interactivity
     cyRef.current.on('tap', 'node', (evt) => {
       const node = evt.target;
       console.log('Selected node:', node.data());
@@ -577,13 +612,11 @@ export { getNodeColor, resetAllColors };
         const result = await response.json();
         setResponse(result);
         
-        // Update graph visualization with subgraph
         if (cyRef.current && result.subgraph) {
           cyRef.current.elements().remove();
           cyRef.current.add(result.subgraph.nodes);
           cyRef.current.add(result.subgraph.edges);
           
-          // Re-run layout
           cyRef.current.layout({
             name: 'cose-bilkent',
             animate: true,
@@ -609,25 +642,19 @@ export { getNodeColor, resetAllColors };
   const formatAnalysisText = (text) => {
     if (!text) return text;
     
-    // Split into paragraphs
     const paragraphs = text.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
       if (!paragraph.trim()) return null;
       
-      // Format bold text **text**
       let formatted = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      // Format italic text *text*
       formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
       
-      // Format bullet points
       if (formatted.startsWith('- ') || formatted.startsWith('• ')) {
         formatted = `<li className="ml-4">${formatted.substring(2)}</li>`;
         return <ul key={index} className="list-disc ml-4 mb-2" dangerouslySetInnerHTML={{__html: formatted}} />;
       }
       
-      // Check if it's a header (ends with colon or starts with strong tag)
       const isHeader = formatted.includes('<strong>') && (formatted.endsWith(':</strong>') || formatted.endsWith('<strong>'));
       
       return (
@@ -643,7 +670,7 @@ export { getNodeColor, resetAllColors };
   const updateGraphVisualization = () => {
     if (cyRef.current) {
       cyRef.current.style().selector('node').style({
-        'background-color': (node) => getNodeColor(node, nodeColorBy),
+        'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
         'width': (node) => getNodeSize(node, nodeSizeBy),
         'height': (node) => getNodeSize(node, nodeSizeBy),
         'label': (node) => getNodeLabel(node, nodeLabelBy)
@@ -715,7 +742,7 @@ export { getNodeColor, resetAllColors };
           nodeSep: 50,
           edgeSep: 10,
           rankSep: 100,
-          rankDir: 'TB', // Top to bottom
+          rankDir: 'TB',
           align: 'UL'
         };
       
@@ -724,7 +751,7 @@ export { getNodeColor, resetAllColors };
           name: 'breadthfirst',
           ...baseConfig,
           directed: false,
-          roots: undefined, // Will auto-select roots
+          roots: undefined,
           spacingFactor: 1.5,
           circle: false,
           grid: false
@@ -754,8 +781,8 @@ export { getNodeColor, resetAllColors };
         return {
           name: 'grid',
           ...baseConfig,
-          rows: undefined, // Auto-calculate
-          cols: undefined, // Auto-calculate
+          rows: undefined,
+          cols: undefined,
           position: (node) => ({})
         };
       
@@ -785,40 +812,32 @@ export { getNodeColor, resetAllColors };
     if (!file) return;
 
     console.log('File selected:', file.name, file.type, file.size);
-    console.log('API URL:', API); // Debug: check API URL
     
-    setError(''); // Clear any previous errors
-    setLoading(true); // Show loading state
+    setError('');
+    setLoading(true);
 
     try {
-      // Test connection first
       const connectionOk = await testConnection();
       if (!connectionOk) {
         throw new Error('Cannot connect to backend. Please check if the backend server is running.');
       }
 
-      // Read the file content
       const text = await file.text();
       console.log('File content read, length:', text.length);
       
-      // Parse JSON
       const rawData = JSON.parse(text);
       console.log('JSON parsed successfully:', rawData);
       
-      // Handle different graph formats
       let graphData;
       
-      // Check if it's the nested format: {graph: {elements: {nodes: [], edges: []}}}
       if (rawData.graph && rawData.graph.elements && rawData.graph.elements.nodes && rawData.graph.elements.edges) {
         console.log('Detected nested graph format (main_combined.json style)');
         graphData = rawData.graph.elements;
       }
-      // Check if it's the simple format: {nodes: [], edges: []}
       else if (rawData.nodes && rawData.edges) {
         console.log('Detected simple graph format');
         graphData = rawData;
       }
-      // Check if it's already in elements format: {nodes: [], edges: []}
       else if (rawData.elements && rawData.elements.nodes && rawData.elements.edges) {
         console.log('Detected elements format');
         graphData = rawData.elements;
@@ -828,9 +847,7 @@ export { getNodeColor, resetAllColors };
       }
       
       console.log(`Graph contains ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
-      console.log('Making API call to:', `${API}/upload-graph`);
       
-      // Upload to backend with additional error handling
       const response = await fetch(`${API}/upload-graph`, {
         method: 'POST',
         headers: { 
@@ -841,7 +858,6 @@ export { getNodeColor, resetAllColors };
       });
 
       console.log('Upload response status:', response.status);
-      console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
       
       let result;
       const contentType = response.headers.get('content-type');
@@ -860,10 +876,9 @@ export { getNodeColor, resetAllColors };
         setGraphUploaded(true);
         setError('');
         
-        // Show success message
         console.log(`Graph uploaded successfully! ${result.stats.nodes} nodes, ${result.stats.edges} edges`);
         
-        // Initialize visualization
+        resetAllColors();
         initializeGraph(graphData);
         loadGraphStats();
       } else {
@@ -874,7 +889,6 @@ export { getNodeColor, resetAllColors };
     } catch (err) {
       console.error('File upload error:', err);
       
-      // More specific error messages
       if (err.name === 'SyntaxError') {
         setError('Invalid JSON file format. Please check your file structure.');
       } else if (err.message.includes('fetch')) {
@@ -886,14 +900,12 @@ export { getNodeColor, resetAllColors };
       }
     } finally {
       setLoading(false);
-      // Reset the file input so the same file can be uploaded again
       e.target.value = '';
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -945,7 +957,6 @@ export { getNodeColor, resetAllColors };
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Query Panel */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>
@@ -1070,7 +1081,6 @@ export { getNodeColor, resetAllColors };
               </CardContent>
             </Card>
 
-            {/* Graph Controls */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1113,7 +1123,6 @@ export { getNodeColor, resetAllColors };
                   </label>
                   <Select value={nodeSizeBy} onValueChange={(value) => {
                     setNodeSizeBy(value);
-                    // Re-render graph with new sizing
                     if (cyRef.current) {
                       cyRef.current.style().selector('node').style({
                         'width': (node) => getNodeSize(node, value),
@@ -1141,10 +1150,10 @@ export { getNodeColor, resetAllColors };
                   </label>
                   <Select value={nodeColorBy} onValueChange={(value) => {
                     setNodeColorBy(value);
-                    // Re-render graph with new coloring
                     if (cyRef.current) {
+                      resetAllColors();
                       cyRef.current.style().selector('node').style({
-                        'background-color': (node) => getNodeColor(node, value)
+                        'background-color': (node) => getNodeColor(node, value, cyRef.current)
                       }).update();
                     }
                   }}>
@@ -1168,7 +1177,6 @@ export { getNodeColor, resetAllColors };
                   </label>
                   <Select value={nodeLabelBy} onValueChange={(value) => {
                     setNodeLabelBy(value);
-                    // Re-render graph with new labels
                     if (cyRef.current) {
                       cyRef.current.style().selector('node').style({
                         'label': (node) => getNodeLabel(node, value)
@@ -1188,7 +1196,6 @@ export { getNodeColor, resetAllColors };
                   </Select>
                 </div>
 
-                {/* Legend */}
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <h4 className="text-xs font-semibold text-gray-700 mb-2">Current Settings:</h4>
                   <div className="space-y-1 text-xs text-gray-600">
@@ -1202,7 +1209,6 @@ export { getNodeColor, resetAllColors };
               </CardContent>
             </Card>
 
-            {/* Results Panel */}
             {response && (
               <Card>
                 <CardHeader>
@@ -1233,7 +1239,6 @@ export { getNodeColor, resetAllColors };
             )}
           </div>
 
-          {/* Graph Visualization */}
           <div className="lg:col-span-2">
             <Card className="h-full">
               <CardHeader>
