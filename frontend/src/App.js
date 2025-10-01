@@ -202,6 +202,49 @@ const resetAllColors = () => {
   colorCaches.location.clear();
 };
 
+// Get legend items for current color scheme
+const getLegendItems = (colorBy) => {
+  switch (colorBy) {
+    case 'department':
+      return Array.from(colorCaches.department.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'gender':
+      return [
+        { label: 'Male', color: '#3B82F6' },
+        { label: 'Female', color: '#EC4899' },
+        { label: 'Other', color: '#6B7280' }
+      ];
+    
+    case 'hierarchy_level':
+      return Array.from(colorCaches.hierarchy_level.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([key, color]) => ({ label: `Level ${key}`, color }));
+    
+    case 'tenure_status':
+      return Array.from(colorCaches.tenure_status.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'group_name1':
+      return Array.from(colorCaches.group_name1.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'group_name2':
+      return Array.from(colorCaches.group_name2.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'location':
+      return Array.from(colorCaches.location.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'rating':
+      return [
+        { label: '9-10 (Excellent)', color: '#10B981' },
+        { label: '7-8 (Good)', color: '#F59E0B' },
+        { label: '5-6 (Average)', color: '#EF4444' },
+        { label: '<5 (Below Average)', color: '#6B7280' }
+      ];
+    
+    default:
+      return [];
+  }
+};
+
 function Home() {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -214,6 +257,7 @@ function Home() {
   const [graphLayout, setGraphLayout] = useState('cose-bilkent');
   const [nodeLabelBy, setNodeLabelBy] = useState('full_name');
   const [selectedCategory, setSelectedCategory] = useState('leadership');
+  const [legendItems, setLegendItems] = useState([]);
   
   const cyRef = useRef(null);
   const graphContainerRef = useRef(null);
@@ -341,6 +385,14 @@ function Home() {
     createSampleGraph();
     loadGraphStats();
   }, []);
+
+  // Update legend when color scheme changes
+  useEffect(() => {
+    if (cyRef.current) {
+      const items = getLegendItems(nodeColorBy);
+      setLegendItems(items);
+    }
+  }, [nodeColorBy]);
 
   const createSampleGraph = async () => {
     const sampleGraphData = {
@@ -589,6 +641,10 @@ function Home() {
       const node = evt.target;
       console.log('Selected node:', node.data());
     });
+
+    // Update legend after graph is initialized
+    const items = getLegendItems(nodeColorBy);
+    setLegendItems(items);
   };
 
   const handleQuery = async (e) => {
@@ -1155,6 +1211,8 @@ function Home() {
                       cyRef.current.style().selector('node').style({
                         'background-color': (node) => getNodeColor(node, value, cyRef.current)
                       }).update();
+                      const items = getLegendItems(value);
+                      setLegendItems(items);
                     }
                   }}>
                     <SelectTrigger className="w-full">
@@ -1195,6 +1253,27 @@ function Home() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Color Legend */}
+                {legendItems.length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="text-xs font-semibold text-gray-700 mb-3 flex items-center">
+                      <Palette className="h-3 w-3 mr-1" />
+                      Color Legend
+                    </h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {legendItems.map((item, idx) => (
+                        <div key={idx} className="flex items-center space-x-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-xs text-gray-700 truncate">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <h4 className="text-xs font-semibold text-gray-700 mb-2">Current Settings:</h4>
