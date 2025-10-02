@@ -1,1038 +1,1371 @@
-from fastapi import FastAPI, APIRouter, HTTPException
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-import uuid
-from datetime import datetime
-import json
-import asyncio
-import networkx as nx
-#from emergentintegrations.llm.chat import LlmChat, UserMessage
-import openai
-import logging
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import cytoscape from 'cytoscape';
+import coseBilkent from 'cytoscape-cose-bilkent';
+import fcose from 'cytoscape-fcose';
+import cola from 'cytoscape-cola';
+import dagre from 'cytoscape-dagre';
+import { Send, Upload, Users, Network, BarChart3, MessageSquare, Palette, Maximize2, Layout, Tag } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Textarea } from './components/ui/textarea';
+import { Badge } from './components/ui/badge';
+import { Alert, AlertDescription } from './components/ui/alert';
+import { Separator } from './components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import './App.css';
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+// Register cytoscape extensions
+cytoscape.use(coseBilkent);
+cytoscape.use(fcose);
+cytoscape.use(cola);
+cytoscape.use(dagre);
 
-# MongoDB connection
-mongo_url = os.environ.get('MONGO_URL')
-db_name = os.environ.get('DB_NAME')
+// Fixed API configuration
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://people-analytics-backend-1.onrender.com/'
+    : 'http://localhost:8000');
 
-if not mongo_url or not db_name:
-    raise ValueError("Missing MONGO_URL or DB_NAME environment variables")
+const API = `${BACKEND_URL}/api`;
 
-client = AsyncIOMotorClient(mongo_url)
-db = client[db_name]
+// Store color mappings outside component to persist across renders
+const colorCaches = {
+  department: new Map(),
+  hierarchy_level: new Map(),
+  tenure_status: new Map(),
+  group_name1: new Map(),
+  group_name2: new Map(),
+  location: new Map()
+};
 
-# Create the main app without a prefix
-app = FastAPI(title="People Analytics API")
+// Generate a diverse color palette
+const generateColorPalette = (count) => {
+  const colors = [];
+  const saturation = 65;
+  const lightness = 55;
+  
+  for (let i = 0; i < count; i++) {
+    const hue = (i * 360 / count) % 360;
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  
+  return colors;
+};
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+// Generate gradient colors for hierarchy levels (darker to lighter)
+const generateHierarchyGradient = (count) => {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const lightness = 30 + (i * 40 / count);
+    colors.push(`hsl(220, 70%, ${lightness}%)`);
+  }
+  return colors;
+};
 
-# Global variables for graph data
-graph_data = None
-nx_graph = None
+// Initialize all color caches at once
+const initializeAllColorCaches = (cy) => {
+  if (!cy) return;
+  
+  // Department
+  if (colorCaches.department.size === 0) {
+    const departments = new Set();
+    cy.nodes().forEach(n => {
+      const dept = n.data('department');
+      if (dept) departments.add(dept);
+    });
+    
+    const deptArray = Array.from(departments).sort();
+    const colors = generateColorPalette(deptArray.length);
+    
+    deptArray.forEach((dept, index) => {
+      colorCaches.department.set(dept, colors[index]);
+    });
+  }
+  
+  // Hierarchy Level
+  if (colorCaches.hierarchy_level.size === 0) {
+    const levels = new Set();
+    cy.nodes().forEach(n => {
+      const level = n.data('hierarchy_level');
+      if (level !== undefined && level !== null) levels.add(level);
+    });
+    
+    const levelArray = Array.from(levels).sort((a, b) => a - b);
+    const colors = generateHierarchyGradient(levelArray.length);
+    
+    levelArray.forEach((level, index) => {
+      colorCaches.hierarchy_level.set(level, colors[index]);
+    });
+  }
+  
+  // Tenure Status
+  if (colorCaches.tenure_status.size === 0) {
+    const statuses = new Set();
+    cy.nodes().forEach(n => {
+      const status = n.data('tenure_status');
+      if (status) statuses.add(status);
+    });
+    
+    const statusArray = Array.from(statuses).sort();
+    const colors = generateColorPalette(statusArray.length);
+    
+    statusArray.forEach((status, index) => {
+      colorCaches.tenure_status.set(status, colors[index]);
+    });
+  }
+  
+  // Group Name 1
+  if (colorCaches.group_name1.size === 0) {
+    const groups = new Set();
+    cy.nodes().forEach(n => {
+      const group = n.data('group_name1');
+      if (group) groups.add(group);
+    });
+    
+    const groupArray = Array.from(groups).sort();
+    const colors = generateColorPalette(groupArray.length);
+    
+    groupArray.forEach((group, index) => {
+      colorCaches.group_name1.set(group, colors[index]);
+    });
+  }
+  
+  // Group Name 2
+  if (colorCaches.group_name2.size === 0) {
+    const groups = new Set();
+    cy.nodes().forEach(n => {
+      const group = n.data('group_name2');
+      if (group) groups.add(group);
+    });
+    
+    const groupArray = Array.from(groups).sort();
+    const colors = generateColorPalette(groupArray.length);
+    
+    groupArray.forEach((group, index) => {
+      colorCaches.group_name2.set(group, colors[index]);
+    });
+  }
+  
+  // Location
+  if (colorCaches.location.size === 0) {
+    const locations = new Set();
+    cy.nodes().forEach(n => {
+      const loc = n.data('location');
+      if (loc) locations.add(loc);
+    });
+    
+    const locationArray = Array.from(locations).sort();
+    const colors = generateColorPalette(locationArray.length);
+    
+    locationArray.forEach((loc, index) => {
+      colorCaches.location.set(loc, colors[index]);
+    });
+  }
+};
 
-# Placeholder graph data for demo purposes
-PLACEHOLDER_GRAPH_DATA = {
-    "nodes": [
-        {"data": {"id": "alice", "name": "Alice Johnson", "full_name": "Alice Johnson", "department": "Engineering", "designation": "Senior Manager", "hierarchy_level": 2, "gender": "Female"}},
-        {"data": {"id": "bob", "name": "Bob Smith", "full_name": "Bob Smith", "department": "Engineering", "designation": "Developer", "hierarchy_level": 4, "gender": "Male"}},
-        {"data": {"id": "charlie", "name": "Charlie Brown", "full_name": "Charlie Brown", "department": "Product", "designation": "Product Manager", "hierarchy_level": 3, "gender": "Male"}},
-        {"data": {"id": "diana", "name": "Diana Wilson", "full_name": "Diana Wilson", "department": "Marketing", "designation": "Marketing Director", "hierarchy_level": 2, "gender": "Female"}},
-        {"data": {"id": "eve", "name": "Eve Davis", "full_name": "Eve Davis", "department": "Sales", "designation": "Sales Manager", "hierarchy_level": 3, "gender": "Female"}},
-        {"data": {"id": "frank", "name": "Frank Miller", "full_name": "Frank Miller", "department": "Engineering", "designation": "Tech Lead", "hierarchy_level": 3, "gender": "Male"}},
-        {"data": {"id": "grace", "name": "Grace Lee", "full_name": "Grace Lee", "department": "HR", "designation": "HR Business Partner", "hierarchy_level": 3, "gender": "Female"}},
-        {"data": {"id": "henry", "name": "Henry Taylor", "full_name": "Henry Taylor", "department": "Finance", "designation": "Financial Analyst", "hierarchy_level": 4, "gender": "Male"}},
-        {"data": {"id": "iris", "name": "Iris Garcia", "full_name": "Iris Garcia", "department": "Product", "designation": "UX Designer", "hierarchy_level": 4, "gender": "Female"}},
-        {"data": {"id": "jack", "name": "Jack Thompson", "full_name": "Jack Thompson", "department": "Operations", "designation": "Operations Manager", "hierarchy_level": 3, "gender": "Male"}},
-        {"data": {"id": "kate", "name": "Kate Anderson", "full_name": "Kate Anderson", "department": "Marketing", "designation": "Content Strategist", "hierarchy_level": 4, "gender": "Female"}},
-        {"data": {"id": "leo", "name": "Leo Rodriguez", "full_name": "Leo Rodriguez", "department": "Sales", "designation": "Sales Representative", "hierarchy_level": 5, "gender": "Male"}},
-        {"data": {"id": "mary", "name": "Mary Chen", "full_name": "Mary Chen", "department": "Engineering", "designation": "QA Engineer", "hierarchy_level": 4, "gender": "Female"}},
-        {"data": {"id": "nick", "name": "Nick White", "full_name": "Nick White", "department": "Finance", "designation": "Finance Director", "hierarchy_level": 2, "gender": "Male"}},
-        {"data": {"id": "olivia", "name": "Olivia Kumar", "full_name": "Olivia Kumar", "department": "Product", "designation": "Product Owner", "hierarchy_level": 4, "gender": "Female"}}
-    ],
-    "edges": [
-        {"data": {"id": "alice-bob", "source": "alice", "target": "bob", "weight": 2}},
-        {"data": {"id": "alice-frank", "source": "alice", "target": "frank", "weight": 3}},
-        {"data": {"id": "alice-charlie", "source": "alice", "target": "charlie", "weight": 2}},
-        {"data": {"id": "alice-diana", "source": "alice", "target": "diana", "weight": 1}},
-        {"data": {"id": "bob-frank", "source": "bob", "target": "frank", "weight": 3}},
-        {"data": {"id": "bob-mary", "source": "bob", "target": "mary", "weight": 2}},
-        {"data": {"id": "charlie-iris", "source": "charlie", "target": "iris", "weight": 2}},
-        {"data": {"id": "charlie-olivia", "source": "charlie", "target": "olivia", "weight": 2}},
-        {"data": {"id": "charlie-alice", "source": "charlie", "target": "alice", "weight": 1}},
-        {"data": {"id": "diana-kate", "source": "diana", "target": "kate", "weight": 2}},
-        {"data": {"id": "diana-grace", "source": "diana", "target": "grace", "weight": 1}},
-        {"data": {"id": "eve-leo", "source": "eve", "target": "leo", "weight": 3}},
-        {"data": {"id": "eve-jack", "source": "eve", "target": "jack", "weight": 1}},
-        {"data": {"id": "frank-mary", "source": "frank", "target": "mary", "weight": 2}},
-        {"data": {"id": "grace-henry", "source": "grace", "target": "henry", "weight": 1}},
-        {"data": {"id": "grace-nick", "source": "grace", "target": "nick", "weight": 1}},
-        {"data": {"id": "henry-nick", "source": "henry", "target": "nick", "weight": 3}},
-        {"data": {"id": "iris-olivia", "source": "iris", "target": "olivia", "weight": 2}},
-        {"data": {"id": "jack-nick", "source": "jack", "target": "nick", "weight": 1}},
-        {"data": {"id": "kate-eve", "source": "kate", "target": "eve", "weight": 1}},
-        {"data": {"id": "charlie-diana", "source": "charlie", "target": "diana", "weight": 1}},
-        {"data": {"id": "alice-grace", "source": "alice", "target": "grace", "weight": 1}},
-        {"data": {"id": "frank-charlie", "source": "frank", "target": "charlie", "weight": 1}},
-        {"data": {"id": "mary-iris", "source": "mary", "target": "iris", "weight": 1}},
-        {"data": {"id": "leo-jack", "source": "leo", "target": "jack", "weight": 1}}
-    ]
+const getNodeColor = (node, colorBy, cy) => {
+  const data = node.data();
+  
+  switch (colorBy) {
+    case 'department':
+      return colorCaches.department.get(data.department) || '#6B7280';
+    
+    case 'gender':
+      return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
+    
+    case 'hierarchy_level':
+      return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
+    
+    case 'tenure_status':
+      return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
+    
+    case 'group_name1':
+      return colorCaches.group_name1.get(data.group_name1) || '#6B7280';
+    
+    case 'group_name2':
+      return colorCaches.group_name2.get(data.group_name2) || '#6B7280';
+    
+    case 'location':
+      return colorCaches.location.get(data.location) || '#6B7280';
+    
+    case 'rating': {
+      const rating = data.rating || 5;
+      if (rating >= 9) return '#10B981';
+      if (rating >= 7) return '#F59E0B';
+      if (rating >= 5) return '#EF4444';
+      return '#6B7280';
+    }
+    
+    default:
+      return '#6B7280';
+  }
+};
+
+const resetAllColors = () => {
+  colorCaches.department.clear();
+  colorCaches.hierarchy_level.clear();
+  colorCaches.tenure_status.clear();
+  colorCaches.group_name1.clear();
+  colorCaches.group_name2.clear();
+  colorCaches.location.clear();
+};
+
+// Get legend items for current color scheme
+const getLegendItems = (colorBy) => {
+  switch (colorBy) {
+    case 'department':
+      return Array.from(colorCaches.department.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'gender':
+      return [
+        { label: 'Male', color: '#3B82F6' },
+        { label: 'Female', color: '#EC4899' },
+        { label: 'Other/Unknown', color: '#6B7280' }
+      ];
+    
+    case 'hierarchy_level':
+      return Array.from(colorCaches.hierarchy_level.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([key, color]) => ({ label: `Level ${key}`, color }));
+    
+    case 'tenure_status':
+      return Array.from(colorCaches.tenure_status.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'group_name1':
+      return Array.from(colorCaches.group_name1.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'group_name2':
+      return Array.from(colorCaches.group_name2.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'location':
+      return Array.from(colorCaches.location.entries()).map(([key, color]) => ({ label: key, color }));
+    
+    case 'rating':
+      return [
+        { label: '9-10 (Excellent)', color: '#10B981' },
+        { label: '7-8 (Good)', color: '#F59E0B' },
+        { label: '5-6 (Average)', color: '#EF4444' },
+        { label: '<5 (Below Average)', color: '#6B7280' }
+      ];
+    
+    default:
+      return [];
+  }
+};
+
+function Home() {
+  const [question, setQuestion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [graphStats, setGraphStats] = useState(null);
+  const [graphUploaded, setGraphUploaded] = useState(false);
+  const [error, setError] = useState('');
+  const [nodeSizeBy, setNodeSizeBy] = useState('degree');
+  const [nodeColorBy, setNodeColorBy] = useState('department');
+  const [graphLayout, setGraphLayout] = useState('cose-bilkent');
+  const [nodeLabelBy, setNodeLabelBy] = useState('full_name');
+  const [selectedCategory, setSelectedCategory] = useState('leadership');
+  const [legendItems, setLegendItems] = useState([]);
+  
+  const cyRef = useRef(null);
+  const graphContainerRef = useRef(null);
+
+  const testConnection = async () => {
+    try {
+      console.log('Testing connection to:', `${API}/test`);
+      const response = await fetch(`${API}/test`);
+      const result = await response.json();
+      console.log('Backend connection test:', result);
+      return true;
+    } catch (error) {
+      console.error('Backend connection failed:', error);
+      return false;
+    }
+  };
+
+  const questionCategories = {
+    'leadership': {
+      title: 'Leadership & Influence',
+      icon: '👑',
+      questions: [
+        "Who are the hidden influencers we should recognize or engage in change initiatives?",
+        "Which managers have the most diverse connections across the organization?",
+        "Are leadership messages reaching the whole network or getting stuck in pockets?",
+        "Who are the informal leaders in our organization, and how do they influence decision-making?"
+      ]
+    },
+    'collaboration': {
+      title: 'Collaboration & Silos',
+      icon: '🤝',
+      questions: [
+        "Which departments are working in silos and need stronger connections?",
+        "Where do we see duplication of work due to weak cross-team ties?",
+        "Which functions collaborate most frequently, and which are isolated?",
+        "Which teams are most at risk of becoming silos, and what connections should we strengthen?"
+      ]
+    },
+    'innovation': {
+      title: 'Innovation & Knowledge Flow',
+      icon: '💡',
+      questions: [
+        "Who are the bridges connecting R&D with Sales and Marketing?",
+        "Which teams have the most cross-functional idea exchanges?",
+        "Where is knowledge concentrated, and how can we spread it more evenly?",
+        "How effectively is knowledge flowing between departments like Sales, Engineering, and Marketing?"
+      ]
+    },
+    'diversity': {
+      title: 'Diversity, Equity & Inclusion',
+      icon: '🌍',
+      questions: [
+        "Are women and minority groups equally central in the network?",
+        "Do we see equitable access to leadership across different employee groups?",
+        "Which underrepresented groups are underconnected and need stronger sponsorship?"
+      ]
+    },
+    'risk': {
+      title: 'Risk & Succession',
+      icon: '⚠️',
+      questions: [
+        "If this critical person left tomorrow, what part of the network would be disrupted?",
+        "Who are the successors already positioned to step into key connector roles?",
+        "Which teams are vulnerable because they rely on just one or two connectors?",
+        "Where are the communication bottlenecks that could slow down strategy execution?"
+      ]
+    }
+  };
+
+  const sizingOptions = [
+    { value: 'degree', label: 'Degree (Connections)' },
+    { value: 'betweenness', label: 'Betweenness Centrality' },
+    { value: 'gate_keeper_score', label: 'Gatekeeper Score' },
+    { value: 'go_to_score', label: 'Go-To Score' },
+    { value: 'social_hubs_score', label: 'Social Hubs Score' },
+    { value: 'tenure_year', label: 'Tenure (Years)' },
+    { value: 'rating', label: 'Performance Rating' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' }
+  ];
+
+  const coloringOptions = [
+    { value: 'department', label: 'Department' },
+    { value: 'gender', label: 'Gender' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' },
+    { value: 'tenure_status', label: 'Tenure Status' },
+    { value: 'group_name1', label: 'Group 1' },
+    { value: 'group_name2', label: 'Group 2' },
+    { value: 'location', label: 'Location' },
+    { value: 'rating', label: 'Performance Rating' }
+  ];
+
+  const layoutOptions = [
+    { value: 'cose-bilkent', label: 'Force-Directed (Cose-Bilkent)', description: 'Natural clustering with good separation' },
+    { value: 'cose', label: 'Force-Directed (Cose)', description: 'Simple force-directed layout' },
+    { value: 'fcose', label: 'Fast Force-Directed', description: 'Optimized for large networks' },
+    { value: 'cola', label: 'Constraint-Based (Cola)', description: 'Respects constraints and groupings' },
+    { value: 'dagre', label: 'Hierarchical (Dagre)', description: 'Top-down organizational chart' },
+    { value: 'breadthfirst', label: 'Hierarchical (Tree)', description: 'Tree-like hierarchy from root' },
+    { value: 'circle', label: 'Circular', description: 'Nodes arranged in a circle' },
+    { value: 'concentric', label: 'Concentric', description: 'Concentric circles by importance' },
+    { value: 'grid', label: 'Grid', description: 'Organized grid layout' },
+    { value: 'random', label: 'Random', description: 'Random positioning' }
+  ];
+
+  const labelOptions = [
+    { value: 'full_name', label: 'Full Name' },
+    { value: 'first_name', label: 'First Name' },
+    { value: 'name', label: 'Name/ID' },
+    { value: 'designation', label: 'Job Title' },
+    { value: 'department', label: 'Department' },
+    { value: 'location', label: 'Location' },
+    { value: 'email', label: 'Email' },
+    { value: 'group_name1', label: 'Group 1' },
+    { value: 'group_name2', label: 'Group 2' },
+    { value: 'hierarchy_level', label: 'Hierarchy Level' },
+    { value: 'tenure', label: 'Tenure' },
+    { value: 'rating', label: 'Performance Rating' },
+    { value: 'none', label: 'No Labels' }
+  ];
+
+  useEffect(() => {
+    console.log('Component mounted, initializing...');
+    console.log('Backend URL:', BACKEND_URL);
+    console.log('API URL:', API);
+    createSampleGraph();
+    loadGraphStats();
+  }, []);
+
+  const updateLegend = (colorScheme) => {
+    const items = getLegendItems(colorScheme || nodeColorBy);
+    setLegendItems(items);
+  };
+
+  const createSampleGraph = async () => {
+    const sampleGraphData = {
+      nodes: [
+        { data: { id: '1', name: 'Alice Johnson', full_name: 'Alice Johnson', department: 'Engineering', title: 'Tech Lead', group: 'backend' } },
+        { data: { id: '2', name: 'Bob Chen', full_name: 'Bob Chen', department: 'Engineering', title: 'Senior Developer', group: 'frontend' } },
+        { data: { id: '3', name: 'Carol Davis', full_name: 'Carol Davis', department: 'Marketing', title: 'Marketing Manager', group: 'content' } },
+        { data: { id: '4', name: 'David Wilson', full_name: 'David Wilson', department: 'Sales', title: 'Sales Director', group: 'enterprise' } },
+        { data: { id: '5', name: 'Emily Brown', full_name: 'Emily Brown', department: 'Engineering', title: 'DevOps Engineer', group: 'infrastructure' } },
+        { data: { id: '6', name: 'Frank Miller', full_name: 'Frank Miller', department: 'Marketing', title: 'Content Specialist', group: 'content' } },
+        { data: { id: '7', name: 'Grace Lee', full_name: 'Grace Lee', department: 'Sales', title: 'Account Executive', group: 'mid-market' } },
+        { data: { id: '8', name: 'Henry Garcia', full_name: 'Henry Garcia', department: 'Engineering', title: 'Product Manager', group: 'product' } },
+        { data: { id: '9', name: 'Iris Thompson', full_name: 'Iris Thompson', department: 'Marketing', title: 'Designer', group: 'creative' } },
+        { data: { id: '10', name: 'Jack Rodriguez', full_name: 'Jack Rodriguez', department: 'Sales', title: 'Sales Rep', group: 'smb' } },
+        { data: { id: '11', name: 'Karen White', full_name: 'Karen White', department: 'HR', title: 'HR Director', group: 'people' } },
+        { data: { id: '12', name: 'Luke Anderson', full_name: 'Luke Anderson', department: 'Engineering', title: 'Data Scientist', group: 'analytics' } },
+        { data: { id: '13', name: 'Maria Lopez', full_name: 'Maria Lopez', department: 'Marketing', title: 'Social Media Manager', group: 'social' } },
+        { data: { id: '14', name: 'Nathan Clark', full_name: 'Nathan Clark', department: 'Sales', title: 'Customer Success', group: 'support' } },
+        { data: { id: '15', name: 'Olivia Taylor', full_name: 'Olivia Taylor', department: 'Engineering', title: 'Security Engineer', group: 'security' } }
+      ],
+      edges: [
+        { data: { id: 'e1', source: '1', target: '2', weight: 0.8, type: 'collaboration' } },
+        { data: { id: 'e2', source: '1', target: '5', weight: 0.6, type: 'technical' } },
+        { data: { id: 'e3', source: '1', target: '8', weight: 0.9, type: 'project' } },
+        { data: { id: 'e4', source: '2', target: '3', weight: 0.4, type: 'cross-team' } },
+        { data: { id: 'e5', source: '3', target: '4', weight: 0.7, type: 'go-to-market' } },
+        { data: { id: 'e6', source: '3', target: '6', weight: 0.8, type: 'collaboration' } },
+        { data: { id: 'e7', source: '4', target: '7', weight: 0.9, type: 'mentoring' } },
+        { data: { id: 'e8', source: '4', target: '10', weight: 0.6, type: 'supervision' } },
+        { data: { id: 'e9', source: '5', target: '12', weight: 0.5, type: 'infrastructure' } },
+        { data: { id: 'e10', source: '6', target: '9', weight: 0.7, type: 'creative' } },
+        { data: { id: 'e11', source: '7', target: '14', weight: 0.8, type: 'customer' } },
+        { data: { id: 'e12', source: '8', target: '12', weight: 0.6, type: 'data' } },
+        { data: { id: 'e13', source: '9', target: '13', weight: 0.5, type: 'marketing' } },
+        { data: { id: 'e14', source: '11', target: '1', weight: 0.4, type: 'hr-support' } },
+        { data: { id: 'e15', source: '11', target: '4', weight: 0.5, type: 'hr-support' } },
+        { data: { id: 'e16', source: '11', target: '3', weight: 0.3, type: 'hr-support' } },
+        { data: { id: 'e17', source: '8', target: '3', weight: 0.6, type: 'product-marketing' } },
+        { data: { id: 'e18', source: '15', target: '1', weight: 0.5, type: 'security' } },
+        { data: { id: 'e19', source: '15', target: '5', weight: 0.7, type: 'security' } }
+      ]
+    };
+
+    try {
+      console.log('Uploading sample graph data...');
+      const connectionOk = await testConnection();
+      if (!connectionOk) {
+        throw new Error('Cannot connect to backend server');
+      }
+      
+      const response = await fetch(`${API}/upload-graph`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ graph_data: sampleGraphData })
+      });
+
+      const result = await response.json();
+      console.log('Upload response:', result);
+
+      if (response.ok) {
+        setGraphUploaded(true);
+        setError('');
+        
+        setTimeout(() => {
+          if (graphContainerRef.current) {
+            resetAllColors();
+            initializeGraph(sampleGraphData);
+          }
+        }, 500);
+      } else {
+        setError(`Failed to upload graph: ${result.detail || result.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Failed to upload sample graph:', err);
+      setError(`Failed to initialize sample data: ${err.message}`);
+    }
+  };
+
+  const loadGraphStats = async () => {
+    try {
+      const response = await fetch(`${API}/graph-stats`);
+      if (response.ok) {
+        const stats = await response.json();
+        setGraphStats(stats);
+      }
+    } catch (err) {
+      console.error('Failed to load graph stats:', err);
+    }
+  };
+  
+  const getNodeSize = (node, sizeBy) => {
+    const data = node.data();
+    let value = 0;
+    
+    switch (sizeBy) {
+      case 'degree':
+        value = data.degree || 0;
+        return Math.max(20, Math.min(80, value * 3 + 20));
+      
+      case 'betweenness':
+        value = data.betweenness || 0;
+        return Math.max(20, Math.min(80, value * 1000 + 20));
+      
+      case 'gate_keeper_score':
+        value = data.gate_keeper_score || 0;
+        return Math.max(20, Math.min(80, value * 500 + 20));
+      
+      case 'go_to_score':
+        value = data.go_to_score || 0;
+        return Math.max(20, Math.min(80, value * 200 + 20));
+      
+      case 'social_hubs_score':
+        value = data.social_hubs_score || 0;
+        return Math.max(20, Math.min(80, value * 200 + 20));
+      
+      case 'tenure_year':
+        value = data.tenure_year || 0;
+        return Math.max(20, Math.min(80, value * 2 + 20));
+      
+      case 'rating':
+        value = data.rating || 5;
+        return Math.max(20, Math.min(80, value * 6 + 20));
+      
+      case 'hierarchy_level':
+        value = 8 - (data.hierarchy_level || 5);
+        return Math.max(20, Math.min(80, value * 8 + 20));
+      
+      default:
+        return 30;
+    }
+  };
+
+  const getNodeLabel = (node, labelBy) => {
+    const data = node.data();
+    
+    switch (labelBy) {
+      case 'full_name':
+        return data.full_name || data.name || data.first_name + ' ' + data.last_name || data.id || '';
+      
+      case 'first_name':
+        return data.first_name || data.name || data.full_name || data.id || '';
+      
+      case 'name':
+        return data.name || data.id || data.full_name || '';
+      
+      case 'designation':
+        return data.designation || data.title || '';
+      
+      case 'department':
+        return data.department || '';
+      
+      case 'location':
+        return data.location || '';
+      
+      case 'email':
+        const email = data.email || '';
+        return email.includes('@') ? email.split('@')[0] : email;
+      
+      case 'group_name1':
+        return data.group_name1 || '';
+      
+      case 'group_name2':
+        return data.group_name2 || '';
+      
+      case 'hierarchy_level':
+        return data.hierarchy_level ? `L${data.hierarchy_level}` : '';
+      
+      case 'tenure':
+        return data.tenure || (data.tenure_year ? `${data.tenure_year.toFixed(1)}y` : '');
+      
+      case 'rating':
+        return data.rating ? `★${data.rating}` : '';
+      
+      case 'none':
+        return '';
+      
+      default:
+        return data.full_name || data.name || data.id || '';
+    }
+  };
+
+  const initializeGraph = (graphData) => {
+    if (!graphContainerRef.current) return;
+
+    console.log('Initializing graph with data:', graphData);
+
+    if (cyRef.current) {
+      cyRef.current.destroy();
+    }
+
+    const elements = [
+      ...graphData.nodes,
+      ...graphData.edges
+    ];
+
+    cyRef.current = cytoscape({
+      container: graphContainerRef.current,
+      elements: elements,
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
+            'label': (node) => getNodeLabel(node, nodeLabelBy),
+            'width': (node) => getNodeSize(node, nodeSizeBy),
+            'height': (node) => getNodeSize(node, nodeSizeBy),
+            'font-size': '10px',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'color': '#ffffff',
+            'text-outline-color': '#000000',
+            'text-outline-width': 1,
+            'border-width': 2,
+            'border-color': '#ffffff',
+            'text-wrap': 'ellipsis',
+            'text-max-width': '60px'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#94A3B8',
+            'target-arrow-color': '#94A3B8',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'arrow-scale': 0.6,
+            'opacity': 0.7
+          }
+        },
+        {
+          selector: 'node:selected',
+          style: {
+            'border-color': '#FCD34D',
+            'border-width': 4
+          }
+        }
+      ],
+      layout: getLayoutConfig(graphLayout)
+    });
+
+    // Initialize ALL color caches immediately after cytoscape is created
+    initializeAllColorCaches(cyRef.current);
+    
+    // Update legend immediately with current color scheme
+    updateLegend(nodeColorBy);
+
+    cyRef.current.on('tap', 'node', (evt) => {
+      const node = evt.target;
+      console.log('Selected node:', node.data());
+    });
+  };
+
+  const handleQuery = async (e) => {
+    e.preventDefault();
+    if (!question.trim() || loading) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API}/query`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ question })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setResponse(result);
+        
+        if (cyRef.current && result.subgraph) {
+          cyRef.current.elements().remove();
+          cyRef.current.add(result.subgraph.nodes);
+          cyRef.current.add(result.subgraph.edges);
+          
+          cyRef.current.layout({
+            name: 'cose-bilkent',
+            animate: true,
+            animationDuration: 1000
+          }).run();
+        }
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Failed to process query');
+      }
+    } catch (err) {
+      console.error('Query failed:', err);
+      setError('Network error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSampleQuestion = (sampleQ) => {
+    setQuestion(sampleQ);
+  };
+
+  const formatAnalysisText = (text) => {
+    if (!text) return text;
+    
+    const paragraphs = text.split('\n\n');
+    
+    return paragraphs.map((paragraph, index) => {
+      if (!paragraph.trim()) return null;
+      
+      let formatted = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      if (formatted.startsWith('- ') || formatted.startsWith('• ')) {
+        formatted = `<li className="ml-4">${formatted.substring(2)}</li>`;
+        return <ul key={index} className="list-disc ml-4 mb-2" dangerouslySetInnerHTML={{__html: formatted}} />;
+      }
+      
+      const isHeader = formatted.includes('<strong>') && (formatted.endsWith(':</strong>') || formatted.endsWith('<strong>'));
+      
+      return (
+        <div 
+          key={index} 
+          className={`mb-3 ${isHeader ? 'text-base font-semibold text-gray-900' : 'text-sm text-gray-700 leading-relaxed'}`}
+          dangerouslySetInnerHTML={{__html: formatted}}
+        />
+      );
+    }).filter(Boolean);
+  };
+
+  const updateGraphVisualization = () => {
+    if (cyRef.current) {
+      cyRef.current.style().selector('node').style({
+        'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
+        'width': (node) => getNodeSize(node, nodeSizeBy),
+        'height': (node) => getNodeSize(node, nodeSizeBy),
+        'label': (node) => getNodeLabel(node, nodeLabelBy)
+      }).update();
+    }
+  };
+
+  const getLayoutConfig = (layoutName) => {
+    const baseConfig = {
+      animate: true,
+      animationDuration: 1000,
+      fit: true,
+      padding: 50
+    };
+
+    switch (layoutName) {
+      case 'cose-bilkent':
+        return {
+          name: 'cose-bilkent',
+          ...baseConfig,
+          nodeRepulsion: 8000,
+          idealEdgeLength: 100,
+          edgeElasticity: 0.1,
+          nestingFactor: 0.1,
+          gravity: 0.25,
+          numIter: 2500,
+          tile: true,
+          animateFilter: (node) => true
+        };
+      
+      case 'cose':
+        return {
+          name: 'cose',
+          ...baseConfig,
+          nodeRepulsion: (node) => 400000,
+          nodeOverlap: 10,
+          idealEdgeLength: (edge) => 80,
+          gravity: 80,
+          numIter: 1000
+        };
+      
+      case 'fcose':
+        return {
+          name: 'fcose',
+          ...baseConfig,
+          quality: 'default',
+          randomize: false,
+          nodeRepulsion: (node) => 4500,
+          idealEdgeLength: (edge) => 50,
+          gravity: 0.25,
+          gravityRange: 3.8
+        };
+      
+      case 'cola':
+        return {
+          name: 'cola',
+          ...baseConfig,
+          nodeSpacing: 5,
+          edgeLengthVal: 45,
+          handleDisconnected: true,
+          avoidOverlap: true,
+          infinite: false
+        };
+      
+      case 'dagre':
+        return {
+          name: 'dagre',
+          ...baseConfig,
+          nodeSep: 50,
+          edgeSep: 10,
+          rankSep: 100,
+          rankDir: 'TB',
+          align: 'UL'
+        };
+      
+      case 'breadthfirst':
+        return {
+          name: 'breadthfirst',
+          ...baseConfig,
+          directed: false,
+          roots: undefined,
+          spacingFactor: 1.5,
+          circle: false,
+          grid: false
+        };
+      
+      case 'circle':
+        return {
+          name: 'circle',
+          ...baseConfig,
+          radius: 200,
+          startAngle: -Math.PI / 2,
+          sweep: Math.PI * 2,
+          clockwise: true
+        };
+      
+      case 'concentric':
+        return {
+          name: 'concentric',
+          ...baseConfig,
+          concentric: (node) => node.data('degree') || 1,
+          levelWidth: () => 2,
+          minNodeSpacing: 50,
+          spacingFactor: 0.5
+        };
+      
+      case 'grid':
+        return {
+          name: 'grid',
+          ...baseConfig,
+          rows: undefined,
+          cols: undefined,
+          position: (node) => ({})
+        };
+      
+      case 'random':
+        return {
+          name: 'random',
+          ...baseConfig,
+          fit: true
+        };
+      
+      default:
+        return getLayoutConfig('cose-bilkent');
+    }
+  };
+
+  const changeGraphLayout = (layoutName) => {
+    if (cyRef.current) {
+      setGraphLayout(layoutName);
+      const layoutConfig = getLayoutConfig(layoutName);
+      
+      cyRef.current.layout(layoutConfig).run();
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    console.log('File selected:', file.name, file.type, file.size);
+    
+    setError('');
+    setLoading(true);
+
+    try {
+      const connectionOk = await testConnection();
+      if (!connectionOk) {
+        throw new Error('Cannot connect to backend. Please check if the backend server is running.');
+      }
+
+      const text = await file.text();
+      console.log('File content read, length:', text.length);
+      
+      const rawData = JSON.parse(text);
+      console.log('JSON parsed successfully:', rawData);
+      
+      let graphData;
+      
+      if (rawData.graph && rawData.graph.elements && rawData.graph.elements.nodes && rawData.graph.elements.edges) {
+        console.log('Detected nested graph format (main_combined.json style)');
+        graphData = rawData.graph.elements;
+      }
+      else if (rawData.nodes && rawData.edges) {
+        console.log('Detected simple graph format');
+        graphData = rawData;
+      }
+      else if (rawData.elements && rawData.elements.nodes && rawData.elements.edges) {
+        console.log('Detected elements format');
+        graphData = rawData.elements;
+      }
+      else {
+        throw new Error('Invalid graph format. Expected JSON with one of these structures:\n1. {nodes: [], edges: []}\n2. {graph: {elements: {nodes: [], edges: []}}}\n3. {elements: {nodes: [], edges: []}}');
+      }
+      
+      console.log(`Graph contains ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
+      
+      const response = await fetch(`${API}/upload-graph`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ graph_data: graphData })
+      });
+
+      console.log('Upload response status:', response.status);
+      
+      let result;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResult = await response.text();
+        console.log('Non-JSON response:', textResult);
+        throw new Error(`Server returned non-JSON response: ${textResult}`);
+      }
+      
+      console.log('Upload response:', result);
+
+      if (response.ok) {
+        setGraphUploaded(true);
+        setError('');
+        
+        console.log(`Graph uploaded successfully! ${result.stats.nodes} nodes, ${result.stats.edges} edges`);
+        
+        resetAllColors();
+        initializeGraph(graphData);
+        loadGraphStats();
+      } else {
+        const errorMessage = result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`;
+        setError(`Upload failed: ${errorMessage}`);
+        console.error('Upload failed:', result);
+      }
+    } catch (err) {
+      console.error('File upload error:', err);
+      
+      if (err.name === 'SyntaxError') {
+        setError('Invalid JSON file format. Please check your file structure.');
+      } else if (err.message.includes('fetch')) {
+        setError(`Network error: Cannot connect to backend at ${API}. Please check if the backend server is running.`);
+      } else if (err.message.includes('CORS')) {
+        setError('CORS error: Backend is not configured to accept requests from this domain.');
+      } else {
+        setError(`Upload error: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Network className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">People Analytics</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              {graphStats && (
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <Users className="h-4 w-4" />
+                    <span>{graphStats.nodes} People</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>{graphStats.edges} Connections</span>
+                  </div>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileUpload}
+                className="sr-only"
+                id="file-upload"
+                disabled={loading}
+              />
+              <label
+                htmlFor="file-upload"
+                className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                    <span>Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Graph
+                  </>
+                )}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Ask a Question</span>
+                </CardTitle>
+                <CardDescription>
+                  Ask natural language questions about your organizational network
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleQuery} className="space-y-4">
+                  <Textarea
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder="e.g., Who are the key influencers in our organization?"
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !question.trim()}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Analyzing...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Ask Question
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Analysis Categories:</h3>
+                  <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-3">
+                      <TabsTrigger value="leadership" className="text-xs">
+                        {questionCategories.leadership.icon} Leadership
+                      </TabsTrigger>
+                      <TabsTrigger value="collaboration" className="text-xs">
+                        {questionCategories.collaboration.icon} Collaboration
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsList className="grid w-full grid-cols-3 mb-3">
+                      <TabsTrigger value="innovation" className="text-xs">
+                        {questionCategories.innovation.icon} Innovation
+                      </TabsTrigger>
+                      <TabsTrigger value="diversity" className="text-xs">
+                        {questionCategories.diversity.icon} DEI
+                      </TabsTrigger>
+                      <TabsTrigger value="risk" className="text-xs">
+                        {questionCategories.risk.icon} Risk
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {Object.entries(questionCategories).map(([key, category]) => (
+                      <TabsContent key={key} value={key} className="mt-0">
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          <h4 className="text-xs font-semibold text-gray-800 mb-2">
+                            {category.icon} {category.title}
+                          </h4>
+                          {category.questions.map((question, idx) => (
+                            <Button
+                              key={idx}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSampleQuestion(question)}
+                              className="w-full text-left justify-start h-auto p-2 text-xs leading-tight break-words whitespace-normal hover:bg-blue-50"
+                            >
+                              <span className="line-clamp-2">{question}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Graph Upload Format:</h3>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>Upload a JSON file with this structure:</p>
+                    <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
+{`{
+  "nodes": [
+    {
+      "data": {
+        "id": "person_1",
+        "name": "John Doe",
+        "department": "Engineering",
+        "title": "Developer"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "edge_1",
+        "source": "person_1",
+        "target": "person_2",
+        "weight": 0.8,
+        "type": "collaboration"
+      }
+    }
+  ]
+}`}
+                    </pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Palette className="h-5 w-5" />
+                  <span>Graph Controls</span>
+                </CardTitle>
+                <CardDescription>
+                  Customize node appearance based on organizational metrics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Layout className="h-4 w-4 inline mr-1" />
+                    Graph Layout:
+                  </label>
+                  <Select value={graphLayout} onValueChange={(value) => {
+                    changeGraphLayout(value);
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {layoutOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xs text-gray-500">{option.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Maximize2 className="h-4 w-4 inline mr-1" />
+                    Size Nodes By:
+                  </label>
+                  <Select value={nodeSizeBy} onValueChange={(value) => {
+                    setNodeSizeBy(value);
+                    if (cyRef.current) {
+                      cyRef.current.style().selector('node').style({
+                        'width': (node) => getNodeSize(node, value),
+                        'height': (node) => getNodeSize(node, value)
+                      }).update();
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sizingOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Palette className="h-4 w-4 inline mr-1" />
+                    Color Nodes By:
+                  </label>
+                  <Select value={nodeColorBy} onValueChange={(value) => {
+                    setNodeColorBy(value);
+                    if (cyRef.current) {
+                      resetAllColors();
+                      // Re-initialize all caches with new color scheme
+                      initializeAllColorCaches(cyRef.current);
+                      cyRef.current.style().selector('node').style({
+                        'background-color': (node) => getNodeColor(node, value, cyRef.current)
+                      }).update();
+                      // Pass the new value directly to updateLegend to avoid stale state
+                      updateLegend(value);
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {coloringOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Tag className="h-4 w-4 inline mr-1" />
+                    Label Nodes By:
+                  </label>
+                  <Select value={nodeLabelBy} onValueChange={(value) => {
+                    setNodeLabelBy(value);
+                    if (cyRef.current) {
+                      cyRef.current.style().selector('node').style({
+                        'label': (node) => getNodeLabel(node, value)
+                      }).update();
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {labelOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Color Legend */}
+                {legendItems.length > 0 && (
+                  <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h4 className="text-xs font-semibold text-gray-800 mb-3 flex items-center">
+                      <Palette className="h-3 w-3 mr-1" />
+                      Color Legend - {coloringOptions.find(o => o.value === nodeColorBy)?.label}
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {legendItems.map((item, idx) => (
+                        <div key={idx} className="flex items-center space-x-2 bg-white px-2 py-1.5 rounded shadow-sm">
+                          <div 
+                            className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0 shadow-sm"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-xs text-gray-800 font-medium truncate flex-1">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <h4 className="text-xs font-semibold text-gray-700 mb-2">Current Settings:</h4>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div>• Layout: {layoutOptions.find(o => o.value === graphLayout)?.label}</div>
+                    <div>• Node size: {sizingOptions.find(o => o.value === nodeSizeBy)?.label}</div>
+                    <div>• Node color: {coloringOptions.find(o => o.value === nodeColorBy)?.label}</div>
+                    <div>• Node labels: {labelOptions.find(o => o.value === nodeLabelBy)?.label}</div>
+                    <div>• Click nodes for details</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {response && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analysis Results</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">AI Insights:</h4>
+                    <div className="prose prose-sm max-w-none">
+                      {formatAnalysisText(response.answer)}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Key Metrics:</h4>
+                    <div className="space-y-1">
+                      {response.insights.map((insight, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {insight}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Network Visualization</CardTitle>
+                <CardDescription>
+                  Interactive organizational network graph
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {error && (
+                  <Alert className="mb-4">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <div 
+                  ref={graphContainerRef}
+                  className="w-full h-96 lg:h-[600px] border rounded-lg bg-gray-50"
+                  style={{ minHeight: '400px' }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-def initialize_placeholder_graph():
-    """Initialize the placeholder graph on startup"""
-    global graph_data, nx_graph
-    try:
-        graph_data = PLACEHOLDER_GRAPH_DATA
-        nx_graph = load_cytoscape_to_networkx(graph_data)
-        logging.info(f"Placeholder graph initialized with {nx_graph.number_of_nodes()} nodes and {nx_graph.number_of_edges()} edges")
-    except Exception as e:
-        logging.error(f"Failed to initialize placeholder graph: {e}")
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </Router>
+  );
+}
 
-# Pydantic Models
-class GraphUpload(BaseModel):
-    graph_data: Dict[str, Any]
-
-class QueryRequest(BaseModel):
-    question: str
-    
-class QueryResponse(BaseModel):
-    answer: str
-    subgraph: Dict[str, Any]
-    insights: List[str]
-    
-class GraphNode(BaseModel):
-    id: str
-    label: str
-    department: Optional[str] = None
-    title: Optional[str] = None
-    group: Optional[str] = None
-
-class GraphEdge(BaseModel):
-    id: str
-    source: str
-    target: str
-    weight: Optional[float] = 1.0
-    type: Optional[str] = None
-
-# Graph Analysis Functions
-def load_cytoscape_to_networkx(cytoscape_data):
-    G = nx.Graph()
-    elements = cytoscape_data.get('elements', cytoscape_data)
-    
-    # Handle both 'elements' format and direct nodes/edges format
-    if 'nodes' in elements and 'edges' in elements:
-        nodes_data = elements['nodes']
-        edges_data = elements['edges']
-    else:
-        nodes_data = cytoscape_data.get('nodes', [])
-        edges_data = cytoscape_data.get('edges', [])
-    
-    for node in nodes_data:
-        node_id = node['data']['id']
-        G.add_node(node_id, **node['data'])
-    for edge in edges_data:
-        data = edge['data'].copy()
-        source = data.pop('source')
-        target = data.pop('target')
-        G.add_edge(source, target, **data)
-    return G
-
-def get_centrality_measures(G):
-    """Calculate various centrality measures including PageRank"""
-    try:
-        centrality_measures = {
-            'betweenness': nx.betweenness_centrality(G),
-            'closeness': nx.closeness_centrality(G),
-            'degree': nx.degree_centrality(G),
-            'eigenvector': nx.eigenvector_centrality(G, max_iter=1000),
-            'pagerank': nx.pagerank(G, max_iter=1000)
-        }
-        return centrality_measures
-    except:
-        # Fallback for disconnected graphs
-        centrality_measures = {
-            'betweenness': nx.betweenness_centrality(G),
-            'closeness': nx.closeness_centrality(G),
-            'degree': nx.degree_centrality(G),
-            'eigenvector': {node: 0.0 for node in G.nodes()},
-            'pagerank': nx.pagerank(G, max_iter=1000)
-        }
-        return centrality_measures
-
-def detect_upper_outliers(values, method='adaptive'):
-    """Detect upper outliers using statistical methods, adaptive for network size"""
-    import numpy as np
-    
-    if not values or len(values) < 2:
-        return {}
-    
-    values_array = np.array(list(values.values()) if isinstance(values, dict) else values)
-    n = len(values_array)
-    
-    # For small networks, use more inclusive methods
-    if n <= 10:
-        method = 'percentile_75'  # Top 25%
-    elif n <= 50:
-        method = 'percentile_80'  # Top 20%
-    else:
-        method = 'iqr'  # Standard IQR for larger networks
-    
-    if method == 'iqr':
-        # Interquartile Range method
-        Q1 = np.percentile(values_array, 25)
-        Q3 = np.percentile(values_array, 75)
-        IQR = Q3 - Q1
-        upper_threshold = Q3 + 1.5 * IQR
-        
-    elif method == 'zscore':
-        # Z-score method (1.5 standard deviations for smaller networks)
-        mean_val = np.mean(values_array)
-        std_val = np.std(values_array)
-        upper_threshold = mean_val + 1.5 * std_val
-        
-    elif method == 'percentile_75':
-        # Top 25% method for small networks
-        upper_threshold = np.percentile(values_array, 75)
-        
-    elif method == 'percentile_80':
-        # Top 20% method for medium networks
-        upper_threshold = np.percentile(values_array, 80)
-        
-    elif method == 'percentile_90':
-        # Top 10% method for large networks
-        upper_threshold = np.percentile(values_array, 90)
-        
-    else:
-        # Default: adaptive percentile based on network size
-        percentile = 90 - (20 * min(n, 50) / 50)  # 90% for n=1, 70% for n=50
-        upper_threshold = np.percentile(values_array, percentile)
-    
-    if isinstance(values, dict):
-        outliers = {k: v for k, v in values.items() if v > upper_threshold}
-    else:
-        outliers = [v for v in values_array if v > upper_threshold]
-    
-    # Ensure we get at least top 3 for small networks, even if not statistical outliers
-    if isinstance(values, dict) and len(outliers) < 3 and n >= 3:
-        sorted_values = sorted(values.items(), key=lambda x: x[1], reverse=True)
-        outliers = dict(sorted_values[:min(3, n)])
-    
-    return outliers
-
-def get_ranked_influencers_and_connectors(G, centrality_measures):
-    """Get ranked lists of influencers (PageRank) and connectors (Betweenness) with outlier analysis"""
-    
-    # Get PageRank scores for influencers
-    pagerank_scores = centrality_measures['pagerank']
-    betweenness_scores = centrality_measures['betweenness']
-    
-    # Detect upper outliers
-    pagerank_outliers = detect_upper_outliers(pagerank_scores, method='iqr')
-    betweenness_outliers = detect_upper_outliers(betweenness_scores, method='iqr')
-    
-    # Create ranked lists with names and scores
-    influencers_list = []
-    for node, score in sorted(pagerank_outliers.items(), key=lambda x: x[1], reverse=True):
-        node_data = G.nodes.get(node, {})
-        name = node_data.get('full_name') or node_data.get('name') or str(node)
-        department = node_data.get('department', 'Unknown')
-        title = node_data.get('designation') or node_data.get('title', 'Unknown')
-        
-        influencers_list.append({
-            'rank': len(influencers_list) + 1,
-            'name': name,
-            'pagerank_score': round(score, 4),
-            'department': department,
-            'title': title,
-            'node_id': str(node)
-        })
-    
-    connectors_list = []
-    for node, score in sorted(betweenness_outliers.items(), key=lambda x: x[1], reverse=True):
-        node_data = G.nodes.get(node, {})
-        name = node_data.get('full_name') or node_data.get('name') or str(node)
-        department = node_data.get('department', 'Unknown')
-        title = node_data.get('designation') or node_data.get('title', 'Unknown')
-        
-        connectors_list.append({
-            'rank': len(connectors_list) + 1,
-            'name': name,
-            'betweenness_score': round(score, 4),
-            'department': department,
-            'title': title,
-            'node_id': str(node)
-        })
-    
-    return {
-        'influencers': influencers_list,
-        'connectors': connectors_list,
-        'analysis_summary': {
-            'total_influencers_identified': len(influencers_list),
-            'total_connectors_identified': len(connectors_list),
-            'pagerank_threshold': round(min(pagerank_outliers.values()) if pagerank_outliers else 0, 4),
-            'betweenness_threshold': round(min(betweenness_outliers.values()) if betweenness_outliers else 0, 4)
-        }
-    }
-
-def find_communities(G):
-    """Detect communities in the graph"""
-    try:
-        communities = nx.community.greedy_modularity_communities(G)
-        community_dict = {}
-        for i, community in enumerate(communities):
-            for node in community:
-                community_dict[node] = i
-        return community_dict
-    except:
-        return {node: 0 for node in G.nodes()}
-
-def get_department_connections(G):
-    """Analyze connections between departments"""
-    dept_connections = {}
-    dept_internal = {}
-    
-    for node in G.nodes(data=True):
-        dept = node[1].get('department', 'Unknown')
-        if dept not in dept_connections:
-            dept_connections[dept] = set()
-            dept_internal[dept] = 0
-    
-    for edge in G.edges(data=True):
-        source_dept = G.nodes[edge[0]].get('department', 'Unknown')
-        target_dept = G.nodes[edge[1]].get('department', 'Unknown')
-        
-        if source_dept == target_dept:
-            dept_internal[source_dept] += 1
-        else:
-            dept_connections[source_dept].add(target_dept)
-            dept_connections[target_dept].add(source_dept)
-    
-    return dept_connections, dept_internal
-
-def analyze_leadership_influence(G, centrality_measures):
-    """Analyze leadership and influence patterns using PageRank and statistical outliers"""
-    
-    # Get ranked influencers and connectors with outlier analysis
-    ranked_analysis = get_ranked_influencers_and_connectors(G, centrality_measures)
-    
-    # Separate formal vs informal leaders based on titles and hierarchy
-    formal_leaders = []
-    informal_leaders = []
-    
-    for influencer in ranked_analysis['influencers']:
-        node_id = influencer['node_id']
-        node_data = G.nodes.get(node_id, {})
-        title = node_data.get('designation', '').lower()
-        hierarchy = node_data.get('hierarchy_level', 5)
-        
-        # Formal leaders (by title/hierarchy)
-        if any(term in title for term in ['manager', 'director', 'head', 'lead', 'vp', 'ceo']) or hierarchy <= 3:
-            formal_leaders.append(influencer)
-        else:
-            informal_leaders.append(influencer)
-    
-    leadership_analysis = {
-        'all_influencers': ranked_analysis['influencers'],
-        'all_connectors': ranked_analysis['connectors'],
-        'formal_leaders': formal_leaders,
-        'informal_leaders': informal_leaders,
-        'analysis_summary': ranked_analysis['analysis_summary']
-    }
-    
-    return leadership_analysis
-
-def analyze_diversity_equity(G, centrality_measures):
-    """Analyze diversity and equity in network positions"""
-    diversity_analysis = {}
-    
-    # Analyze by gender
-    gender_centrality = {'Male': [], 'Female': [], 'Other': []}
-    
-    # Analyze by hierarchy level
-    hierarchy_centrality = {}
-    
-    for node, data in G.nodes(data=True):
-        gender = data.get('gender', 'Other')
-        hierarchy = data.get('hierarchy_level', 5)
-        betweenness = centrality_measures['betweenness'].get(node, 0)
-        
-        if gender in gender_centrality:
-            gender_centrality[gender].append(betweenness)
-        
-        if hierarchy not in hierarchy_centrality:
-            hierarchy_centrality[hierarchy] = []
-        hierarchy_centrality[hierarchy].append(betweenness)
-    
-    # Calculate average centrality by group
-    diversity_analysis['gender_avg_centrality'] = {
-        gender: sum(centralities) / len(centralities) if centralities else 0
-        for gender, centralities in gender_centrality.items()
-    }
-    
-    diversity_analysis['hierarchy_avg_centrality'] = {
-        level: sum(centralities) / len(centralities) if centralities else 0
-        for level, centralities in hierarchy_centrality.items()
-    }
-    
-    return diversity_analysis
-
-def analyze_risk_vulnerability(G, centrality_measures):
-    """Analyze network risks and vulnerabilities"""
-    risk_analysis = {}
-    
-    # Identify critical connectors (high betweenness)
-    critical_nodes = []
-    for node, centrality in centrality_measures['betweenness'].items():
-        if centrality > 0.05:  # High threshold for critical nodes
-            data = G.nodes[node]
-            critical_nodes.append({
-                'node': node,
-                'name': data.get('full_name', data.get('name', node)),
-                'betweenness': centrality,
-                'degree': G.degree(node),
-                'department': data.get('department', 'Unknown')
-            })
-    
-    risk_analysis['critical_connectors'] = sorted(critical_nodes, key=lambda x: x['betweenness'], reverse=True)[:10]
-    
-    # Analyze department dependencies
-    dept_dependencies = {}
-    for node in G.nodes():
-        dept = G.nodes[node].get('department', 'Unknown')
-        if dept not in dept_dependencies:
-            dept_dependencies[dept] = {'nodes': 0, 'total_centrality': 0}
-        
-        dept_dependencies[dept]['nodes'] += 1
-        dept_dependencies[dept]['total_centrality'] += centrality_measures['betweenness'].get(node, 0)
-    
-    # Calculate vulnerability score (high centrality concentrated in few people)
-    for dept, data in dept_dependencies.items():
-        if data['nodes'] > 0:
-            data['avg_centrality'] = data['total_centrality'] / data['nodes']
-            data['vulnerability_score'] = data['total_centrality'] / max(data['nodes'], 1)  # Higher = more vulnerable
-    
-    risk_analysis['department_vulnerability'] = dept_dependencies
-    
-    return risk_analysis
-
-def format_analysis_response(response: str) -> str:
-    """Format the AI analysis response with better styling"""
-    if not response or len(response.strip()) == 0:
-        return response
-    
-    # Split into paragraphs and format
-    paragraphs = response.split('\n\n')
-    formatted_paragraphs = []
-    
-    for paragraph in paragraphs:
-        paragraph = paragraph.strip()
-        if not paragraph:
-            continue
-            
-        # Format headers (lines that end with colons or are short and ALL CAPS)
-        if paragraph.endswith(':') or (len(paragraph) < 50 and paragraph.isupper()):
-            paragraph = f"**{paragraph}**"
-        
-        # Format bullet points
-        elif paragraph.startswith('-') or paragraph.startswith('•'):
-            # Bold the first part before colon if exists
-            if ':' in paragraph:
-                parts = paragraph.split(':', 1)
-                paragraph = f"**{parts[0]}:** {parts[1].strip()}"
-        
-        # Format numbered points
-        elif any(paragraph.startswith(f"{i}.") for i in range(1, 11)):
-            # Bold the first part before colon if exists
-            if ':' in paragraph:
-                parts = paragraph.split(':', 1)
-                paragraph = f"**{parts[0]}:** {parts[1].strip()}"
-        
-        # Emphasize key terms
-        paragraph = paragraph.replace('Key Insight:', '**Key Insight:**')
-        paragraph = paragraph.replace('Recommendation:', '**Recommendation:**')
-        paragraph = paragraph.replace('Important:', '**Important:**')
-        paragraph = paragraph.replace('Note:', '**Note:**')
-        paragraph = paragraph.replace('Warning:', '**Warning:**')
-        paragraph = paragraph.replace('Action Item:', '**Action Item:**')
-        
-        # Italicize percentages and metrics
-        import re
-        paragraph = re.sub(r'(\d+\.?\d*%)', r'*\1*', paragraph)
-        paragraph = re.sub(r'(\d+\.?\d* out of \d+)', r'*\1*', paragraph)
-        
-        formatted_paragraphs.append(paragraph)
-    
-    # Join with double line breaks for proper spacing
-    return '\n\n'.join(formatted_paragraphs)
-
-async def analyze_with_ai(question: str, graph_analysis: Dict) -> str:
-    """Use OpenAI to analyze graph data and provide insights with enhanced formatting"""
-    try:
-        # Check if OpenAI API key is available
-        openai_api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not openai_api_key:
-            logging.warning("OPENAI_API_KEY not found, using placeholder response")
-            return generate_placeholder_response(question, graph_analysis)
-        
-        # Initialize OpenAI client
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=openai_api_key)
-        
-        # Prepare detailed analysis text for the LLM
-        analysis_text = f"""
-        ORGANIZATIONAL NETWORK ANALYSIS REQUEST
-
-        User Question: {question}
-
-        NETWORK OVERVIEW:
-        - Total People: {graph_analysis.get('total_nodes', 0)}
-        - Total Connections: {graph_analysis.get('total_edges', 0)}
-        - Network Density: {graph_analysis.get('density', 0):.3f}
-        - Communities Detected: {graph_analysis.get('communities_count', 0)}
-
-        TOP INFLUENCERS (PageRank Analysis):
-        {format_top_people_for_llm(graph_analysis.get('influencers_analysis', {}).get('top_influencers', []))}
-
-        TOP CONNECTORS (Betweenness Centrality):
-        {format_top_people_for_llm(graph_analysis.get('connectors_analysis', {}).get('top_connectors', []))}
-
-        LEADERSHIP ANALYSIS:
-        - Formal Leaders: {graph_analysis.get('leadership_breakdown', {}).get('formal_leaders_count', 0)}
-        - Informal Leaders: {graph_analysis.get('leadership_breakdown', {}).get('informal_leaders_count', 0)}
-
-        DEPARTMENT ANALYSIS:
-        {format_department_analysis_for_llm(graph_analysis.get('dept_analysis', {}))}
-
-        DIVERSITY & INCLUSION:
-        {format_diversity_analysis_for_llm(graph_analysis.get('diversity_analysis', {}))}
-
-        RISK FACTORS:
-        - Critical Connectors: {graph_analysis.get('risk_analysis', {}).get('critical_connectors_count', 0)}
-        - Vulnerable Departments: {', '.join(graph_analysis.get('risk_analysis', {}).get('vulnerable_departments', []))}
-
-        Please provide a comprehensive analysis addressing the user's question with specific insights, actionable recommendations, and key findings based on this organizational network data.
-        """
-        
-        # Make API call to OpenAI
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": """You are an expert organizational network analyst and consultant. Your expertise includes:
-                    - Social Network Analysis and organizational behavior
-                    - Leadership development and succession planning
-                    - Change management and organizational transformation
-                    - Diversity, equity, and inclusion in workplace networks
-                    - Risk management and organizational resilience
-                    
-                    Provide detailed, actionable insights that help organizations understand their informal networks, identify key players, spot risks, and optimize collaboration. Use specific data points and metrics in your analysis. Format your response with clear sections, bullet points where appropriate, and bold headers for readability."""
-                },
-                {
-                    "role": "user",
-                    "content": analysis_text
-                }
-            ],
-            temperature=0,
-            max_tokens=1500
-        )
-        
-        ai_response = response.choices[0].message.content
-        return format_analysis_response(ai_response)
-        
-    except Exception as e:
-        logging.error(f"AI analysis failed: {e}")
-        # Fallback to placeholder if AI fails
-        return generate_placeholder_response(question, graph_analysis)
-
-def format_top_people_for_llm(people_list):
-    """Format top people list for LLM consumption"""
-    if not people_list:
-        return "No data available"
-    
-    formatted = []
-    for person in people_list[:5]:  # Top 5
-        name = person.get('name', 'Unknown')
-        dept = person.get('department', 'Unknown')
-        title = person.get('title', 'Unknown')
-        score = person.get('score', person.get('pagerank_score', person.get('betweenness_score', 0)))
-        formatted.append(f"- {name} ({dept}, {title}) - Score: {score}")
-    
-    return '\n'.join(formatted)
-
-def format_department_analysis_for_llm(dept_data):
-    """Format department analysis for LLM"""
-    if not dept_data:
-        return "No department data available"
-    
-    connections = dept_data.get('connections', {})
-    internal = dept_data.get('internal', {})
-    
-    result = []
-    for dept, ext_connections in connections.items():
-        int_connections = internal.get(dept, 0)
-        result.append(f"- {dept}: {ext_connections} external connections, {int_connections} internal connections")
-    
-    return '\n'.join(result) if result else "No department analysis available"
-
-def format_diversity_analysis_for_llm(diversity_data):
-    """Format diversity analysis for LLM"""
-    if not diversity_data:
-        return "No diversity data available"
-    
-    gender_centrality = diversity_data.get('gender_avg_centrality', {})
-    hierarchy_centrality = diversity_data.get('hierarchy_avg_centrality', {})
-    
-    result = []
-    
-    if gender_centrality:
-        result.append("Gender Centrality Distribution:")
-        for gender, avg_centrality in gender_centrality.items():
-            result.append(f"- {gender}: {avg_centrality:.3f} average centrality")
-    
-    if hierarchy_centrality:
-        result.append("\nHierarchy Level Centrality:")
-        for level, avg_centrality in hierarchy_centrality.items():
-            result.append(f"- Level {level}: {avg_centrality:.3f} average centrality")
-    
-    return '\n'.join(result) if result else "No diversity analysis available"
-
-def generate_placeholder_response(question: str, graph_analysis: Dict) -> str:
-    """Generate placeholder response when AI is not available"""
-    return f"""
-    **Network Analysis Summary**
-    
-    Based on your question: "{question}"
-    
-    **Key Findings:**
-    
-    The organizational network shows *{graph_analysis.get('total_nodes', 0)} people* connected through *{graph_analysis.get('total_edges', 0)} relationships*.
-    
-    **Top Influencers (PageRank Analysis):**
-    {format_placeholder_influencers(graph_analysis.get('influencers_analysis', {}).get('top_influencers', []))}
-    
-    **Key Connectors (Betweenness Analysis):**
-    {format_placeholder_connectors(graph_analysis.get('connectors_analysis', {}).get('top_connectors', []))}
-    
-    **Network Density:** *{graph_analysis.get('density', 0):.3f}* - This indicates {"a highly connected" if graph_analysis.get('density', 0) > 0.3 else "a moderately connected" if graph_analysis.get('density', 0) > 0.1 else "a sparse"} network structure.
-    
-    **Recommendations:**
-    - Monitor key connectors as they bridge different parts of the organization
-    - Consider developing backup pathways for critical communication flows
-    - Leverage informal leaders for change management initiatives
-    
-    **Note:** Enable OpenAI API integration by setting OPENAI_API_KEY environment variable for detailed AI-powered insights.
-    """.strip()
-
-def format_placeholder_influencers(influencers):
-    """Format influencers for placeholder response"""
-    if not influencers:
-        return "• No influencer data available"
-    
-    result = []
-    for inf in influencers[:3]:
-        name = inf.get('name', 'Unknown')
-        dept = inf.get('department', 'Unknown')
-        score = inf.get('pagerank_score', inf.get('score', 0))
-        result.append(f"• **{name}** ({dept}) - *PageRank: {score}*")
-    
-    return '\n'.join(result)
-
-def format_placeholder_connectors(connectors):
-    """Format connectors for placeholder response"""
-    if not connectors:
-        return "• No connector data available"
-    
-    result = []
-    for conn in connectors[:3]:
-        name = conn.get('name', 'Unknown')
-        dept = conn.get('department', 'Unknown')
-        score = conn.get('betweenness_score', conn.get('score', 0))
-        result.append(f"• **{name}** ({dept}) - *Betweenness: {score}*")
-    
-    return '\n'.join(result)
-
-
-def create_subgraph_for_question(G, question: str, centrality_measures: Dict) -> Dict:
-    """Create a relevant subgraph based on the question type"""
-    question_lower = question.lower()
-    
-    if 'leader' in question_lower or 'influencer' in question_lower or 'central' in question_lower:
-        # Show top central nodes
-        top_central = sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:15]
-        nodes_to_include = [node[0] for node in top_central]
-        
-    elif 'bottleneck' in question_lower or 'communication' in question_lower:
-        # Show high betweenness centrality nodes
-        top_betweenness = sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:10]
-        nodes_to_include = [node[0] for node in top_betweenness]
-        
-    elif 'department' in question_lower or 'team' in question_lower:
-        # Show inter-departmental connections
-        nodes_to_include = list(G.nodes())[:20]  # Sample for demo
-        
-    elif 'silo' in question_lower:
-        # Show weakly connected components
-        components = list(nx.connected_components(G))
-        nodes_to_include = list(components[0]) if components else list(G.nodes())[:20]
-        
-    else:
-        # Default: show most connected nodes
-        degree_cent = centrality_measures['degree']
-        top_degree = sorted(degree_cent.items(), key=lambda x: x[1], reverse=True)[:20]
-        nodes_to_include = [node[0] for node in top_degree]
-    
-    # Create subgraph
-    subgraph = G.subgraph(nodes_to_include)
-    
-    # Convert to Cytoscape format
-    cytoscape_subgraph = {
-        'nodes': [],
-        'edges': []
-    }
-    
-    for node in subgraph.nodes(data=True):
-        node_data = node[1].copy()
-        node_data['id'] = node[0]
-        
-        # Add centrality data for visualization
-        node_data['betweenness'] = centrality_measures['betweenness'].get(node[0], 0)
-        node_data['degree'] = centrality_measures['degree'].get(node[0], 0)
-        
-        cytoscape_subgraph['nodes'].append({'data': node_data})
-    
-    for edge in subgraph.edges(data=True):
-        edge_data = edge[2].copy()
-        edge_data['source'] = edge[0]
-        edge_data['target'] = edge[1]
-        edge_data['id'] = f"{edge[0]}-{edge[1]}"
-        
-        cytoscape_subgraph['edges'].append({'data': edge_data})
-    
-    return cytoscape_subgraph
-
-# API Routes
-@api_router.post("/upload-graph")
-async def upload_graph(graph_upload: GraphUpload):
-    """Upload and process the organizational graph data"""
-    global graph_data, nx_graph
-    
-    try:
-        graph_data = graph_upload.graph_data
-        nx_graph = load_cytoscape_to_networkx(graph_data)
-        
-        # Store in database
-        await db.graph_data.delete_many({})  # Clear existing data
-        await db.graph_data.insert_one({"data": graph_data, "uploaded_at": datetime.utcnow()})
-        
-        stats = {
-            "nodes": nx_graph.number_of_nodes(),
-            "edges": nx_graph.number_of_edges(),
-            "density": nx.density(nx_graph)
-        }
-        
-        return {"message": "Graph uploaded successfully", "stats": stats}
-        
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to process graph: {str(e)}")
-
-@api_router.get("/graph-data")
-async def get_graph_data():
-    """Get the current graph data"""
-    global graph_data
-    if graph_data is None:
-        # Try to load from database first
-        try:
-            db_graph = await db.graph_data.find_one({})
-            if db_graph:
-                graph_data = db_graph["data"]
-                return {"graph": graph_data}
-        except Exception as e:
-            logging.warning(f"Failed to load from database: {e}")
-        
-        # If no database data, initialize with placeholder
-        initialize_placeholder_graph()
-        if graph_data:
-            return {"graph": graph_data}
-        else:
-            raise HTTPException(status_code=404, detail="No graph data found")
-    
-    return {"graph": graph_data}
-
-@api_router.post("/query", response_model=QueryResponse)
-async def query_graph(query: QueryRequest):
-    """Process natural language query and return analysis with visualization"""
-    global nx_graph
-    
-    if nx_graph is None:
-        # Try to load from database first
-        try:
-            db_graph = await db.graph_data.find_one({})
-            if db_graph:
-                global graph_data
-                graph_data = db_graph["data"]
-                nx_graph = load_cytoscape_to_networkx(graph_data)
-        except Exception as e:
-            logging.warning(f"Failed to load from database: {e}")
-        
-        # If still no graph, initialize with placeholder
-        if nx_graph is None:
-            initialize_placeholder_graph()
-            
-        if nx_graph is None:
-            raise HTTPException(status_code=404, detail="No graph data available. Please upload graph data first.")
-    
-    try:
-        # Perform graph analysis
-        centrality_measures = get_centrality_measures(nx_graph)
-        communities = find_communities(nx_graph)
-        dept_connections, dept_internal = get_department_connections(nx_graph)
-        
-        # Perform specialized analyses
-        leadership_analysis = analyze_leadership_influence(nx_graph, centrality_measures)
-        diversity_analysis = analyze_diversity_equity(nx_graph, centrality_measures)
-        risk_analysis = analyze_risk_vulnerability(nx_graph, centrality_measures)
-        
-        # Prepare comprehensive analysis data for AI
-        graph_analysis = {
-            'total_nodes': nx_graph.number_of_nodes(),
-            'total_edges': nx_graph.number_of_edges(),
-            'density': nx.density(nx_graph),
-            'communities_count': len(set(communities.values())),
-            'dept_analysis': {
-                'connections': {dept: len(conns) for dept, conns in dept_connections.items()},
-                'internal': dept_internal
-            },
-            'influencers_analysis': {
-                'method': 'PageRank with IQR outlier detection',
-                'total_identified': len(leadership_analysis['all_influencers']),
-                'threshold_score': leadership_analysis['analysis_summary']['pagerank_threshold'],
-                'top_influencers': [
-                    {
-                        'rank': inf['rank'],
-                        'name': inf['name'],
-                        'score': inf['pagerank_score'],
-                        'department': inf['department'],
-                        'title': inf['title']
-                    } for inf in leadership_analysis['all_influencers'][:10]
-                ]
-            },
-            'connectors_analysis': {
-                'method': 'Betweenness Centrality with IQR outlier detection',
-                'total_identified': len(leadership_analysis['all_connectors']),
-                'threshold_score': leadership_analysis['analysis_summary']['betweenness_threshold'],
-                'top_connectors': [
-                    {
-                        'rank': conn['rank'],
-                        'name': conn['name'],
-                        'score': conn['betweenness_score'],
-                        'department': conn['department'],
-                        'title': conn['title']
-                    } for conn in leadership_analysis['all_connectors'][:10]
-                ]
-            },
-            'leadership_breakdown': {
-                'formal_leaders_count': len(leadership_analysis['formal_leaders']),
-                'informal_leaders_count': len(leadership_analysis['informal_leaders']),
-                'formal_leaders': leadership_analysis['formal_leaders'][:5],
-                'informal_leaders': leadership_analysis['informal_leaders'][:5]
-            },
-            'diversity_analysis': diversity_analysis,
-            'risk_analysis': {
-                'critical_connectors_count': len(risk_analysis['critical_connectors']),
-                'top_critical': [(conn['name'], conn['betweenness']) for conn in risk_analysis['critical_connectors'][:3]],
-                'vulnerable_departments': [dept for dept, data in risk_analysis['department_vulnerability'].items() 
-                                         if data.get('vulnerability_score', 0) > 0.02]
-            }
-        }
-        
-        # Get AI analysis
-        ai_response = await analyze_with_ai(query.question, graph_analysis)
-        
-        # Create relevant subgraph
-        subgraph = create_subgraph_for_question(nx_graph, query.question, centrality_measures)
-        
-        # Generate insights
-        insights = [
-            f"Network has {nx_graph.number_of_nodes()} people with {nx_graph.number_of_edges()} connections",
-            f"Network density: {nx.density(nx_graph):.3f}",
-            f"Communities detected: {len(set(communities.values()))}",
-        ]
-        
-        # Add top central people to insights
-        top_central = sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:3]
-        for node, score in top_central:
-            node_data = nx_graph.nodes.get(node, {})
-            name = node_data.get('name', node)
-            dept = node_data.get('department', 'Unknown')
-            insights.append(f"Key connector: {name} ({dept}) - Centrality: {score:.3f}")
-        
-        return QueryResponse(
-            answer=ai_response,
-            subgraph=subgraph,
-            insights=insights
-        )
-        
-    except Exception as e:
-        logging.error(f"Query processing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to process query: {str(e)}")
-
-@api_router.get("/graph-stats")
-async def get_graph_stats():
-    """Get basic statistics about the current graph"""
-    global nx_graph
-    
-    if nx_graph is None:
-        # Try to load from database first
-        try:
-            db_graph = await db.graph_data.find_one({})
-            if db_graph:
-                global graph_data
-                graph_data = db_graph["data"]
-                nx_graph = load_cytoscape_to_networkx(graph_data)
-        except Exception as e:
-            logging.warning(f"Failed to load from database: {e}")
-        
-        # If still no graph, initialize with placeholder
-        if nx_graph is None:
-            initialize_placeholder_graph()
-            
-        if nx_graph is None:
-            raise HTTPException(status_code=404, detail="No graph data available")
-    
-    centrality_measures = get_centrality_measures(nx_graph)
-    communities = find_communities(nx_graph)
-    
-    stats = {
-        "nodes": nx_graph.number_of_nodes(),
-        "edges": nx_graph.number_of_edges(),
-        "density": nx.density(nx_graph),
-        "communities": len(set(communities.values())),
-        "is_placeholder": graph_data == PLACEHOLDER_GRAPH_DATA,
-        "top_central_people": [
-            {
-                "id": node,
-                "name": nx_graph.nodes.get(node, {}).get('name', node),
-                "department": nx_graph.nodes.get(node, {}).get('department', 'Unknown'),
-                "betweenness": round(score, 4)
-            }
-            for node, score in sorted(centrality_measures['betweenness'].items(), key=lambda x: x[1], reverse=True)[:10]
-        ]
-    }
-    
-    return stats
-
-@api_router.get("/health")
-async def health_check():
-    return {"status": "ok", "placeholder_available": graph_data is not None}
-
-@api_router.post("/reset-to-placeholder")
-async def reset_to_placeholder():
-    """Reset graph to placeholder data for demo purposes"""
-    initialize_placeholder_graph()
-    return {"message": "Graph reset to placeholder data", "nodes": len(PLACEHOLDER_GRAPH_DATA["nodes"]), "edges": len(PLACEHOLDER_GRAPH_DATA["edges"])}
-
-# Replace the CORS middleware section in your backend code with this:
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001", 
-        "https://people-analytics-frontend.onrender.com",
-        "*"  # Remove this in production, but helpful for debugging
-    ],
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-# Also add this debug route to test connectivity:
-@api_router.get("/test")
-async def test_connection():
-    """Test endpoint to verify API connectivity"""
-    return {"status": "Backend is working", "timestamp": datetime.utcnow().isoformat()}
-
-# Enhanced upload endpoint with better error logging:
-@api_router.post("/upload-graph")
-async def upload_graph(graph_upload: GraphUpload):
-    """Upload and process the organizational graph data"""
-    global graph_data, nx_graph
-    
-    try:
-        logger.info(f"Received graph upload request with {len(graph_upload.graph_data.get('nodes', []))} nodes")
-        
-        graph_data = graph_upload.graph_data
-        nx_graph = load_cytoscape_to_networkx(graph_data)
-        
-        logger.info(f"Successfully processed graph: {nx_graph.number_of_nodes()} nodes, {nx_graph.number_of_edges()} edges")
-        
-        # Store in database
-        try:
-            await db.graph_data.delete_many({})  # Clear existing data
-            await db.graph_data.insert_one({"data": graph_data, "uploaded_at": datetime.utcnow()})
-            logger.info("Graph data saved to database")
-        except Exception as db_error:
-            logger.warning(f"Database save failed (continuing anyway): {db_error}")
-        
-        stats = {
-            "nodes": nx_graph.number_of_nodes(),
-            "edges": nx_graph.number_of_edges(),
-            "density": nx.density(nx_graph)
-        }
-        
-        return {"message": "Graph uploaded successfully", "stats": stats}
-        
-    except Exception as e:
-        logger.error(f"Graph upload failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=400, detail=f"Failed to process graph: {str(e)}")
-
-# Include the router in the main app
-app.include_router(api_router)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize placeholder graph on startup"""
-    logger.info("Starting People Analytics API...")
-    
-    # Try to load existing data from database first
-    try:
-        db_graph = await db.graph_data.find_one({})
-        if db_graph:
-            global graph_data, nx_graph
-            graph_data = db_graph["data"]
-            nx_graph = load_cytoscape_to_networkx(graph_data)
-            logger.info(f"Loaded existing graph from database with {nx_graph.number_of_nodes()} nodes")
-        else:
-            # No existing data, initialize with placeholder
-            initialize_placeholder_graph()
-            logger.info("Initialized with placeholder graph data")
-    except Exception as e:
-        logger.error(f"Failed to load from database: {e}")
-        # Fallback to placeholder
-        initialize_placeholder_graph()
-        logger.info("Using placeholder graph as fallback")
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+export default App;
