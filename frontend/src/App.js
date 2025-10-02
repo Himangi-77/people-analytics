@@ -65,118 +65,104 @@ const generateHierarchyGradient = (count) => {
   return colors;
 };
 
-// Initialize color caches for a given color scheme
-const initializeColorCache = (cy, colorBy) => {
+// Initialize all color caches at once
+const initializeAllColorCaches = (cy) => {
   if (!cy) return;
   
-  switch (colorBy) {
-    case 'department': {
-      if (colorCaches.department.size === 0) {
-        const departments = new Set();
-        cy.nodes().forEach(n => {
-          const dept = n.data('department');
-          if (dept) departments.add(dept);
-        });
-        
-        const deptArray = Array.from(departments).sort();
-        const colors = generateColorPalette(deptArray.length);
-        
-        deptArray.forEach((dept, index) => {
-          colorCaches.department.set(dept, colors[index]);
-        });
-      }
-      break;
-    }
+  // Department
+  if (colorCaches.department.size === 0) {
+    const departments = new Set();
+    cy.nodes().forEach(n => {
+      const dept = n.data('department');
+      if (dept) departments.add(dept);
+    });
     
-    case 'hierarchy_level': {
-      if (colorCaches.hierarchy_level.size === 0) {
-        const levels = new Set();
-        cy.nodes().forEach(n => {
-          const level = n.data('hierarchy_level');
-          if (level !== undefined && level !== null) levels.add(level);
-        });
-        
-        const levelArray = Array.from(levels).sort((a, b) => a - b);
-        const colors = generateHierarchyGradient(levelArray.length);
-        
-        levelArray.forEach((level, index) => {
-          colorCaches.hierarchy_level.set(level, colors[index]);
-        });
-      }
-      break;
-    }
+    const deptArray = Array.from(departments).sort();
+    const colors = generateColorPalette(deptArray.length);
     
-    case 'tenure_status': {
-      if (colorCaches.tenure_status.size === 0) {
-        const statuses = new Set();
-        cy.nodes().forEach(n => {
-          const status = n.data('tenure_status');
-          if (status) statuses.add(status);
-        });
-        
-        const statusArray = Array.from(statuses).sort();
-        const colors = generateColorPalette(statusArray.length);
-        
-        statusArray.forEach((status, index) => {
-          colorCaches.tenure_status.set(status, colors[index]);
-        });
-      }
-      break;
-    }
+    deptArray.forEach((dept, index) => {
+      colorCaches.department.set(dept, colors[index]);
+    });
+  }
+  
+  // Hierarchy Level
+  if (colorCaches.hierarchy_level.size === 0) {
+    const levels = new Set();
+    cy.nodes().forEach(n => {
+      const level = n.data('hierarchy_level');
+      if (level !== undefined && level !== null) levels.add(level);
+    });
     
-    case 'group_name1': {
-      if (colorCaches.group_name1.size === 0) {
-        const groups = new Set();
-        cy.nodes().forEach(n => {
-          const group = n.data('group_name1');
-          if (group) groups.add(group);
-        });
-        
-        const groupArray = Array.from(groups).sort();
-        const colors = generateColorPalette(groupArray.length);
-        
-        groupArray.forEach((group, index) => {
-          colorCaches.group_name1.set(group, colors[index]);
-        });
-      }
-      break;
-    }
+    const levelArray = Array.from(levels).sort((a, b) => a - b);
+    const colors = generateHierarchyGradient(levelArray.length);
     
-    case 'group_name2': {
-      if (colorCaches.group_name2.size === 0) {
-        const groups = new Set();
-        cy.nodes().forEach(n => {
-          const group = n.data('group_name2');
-          if (group) groups.add(group);
-        });
-        
-        const groupArray = Array.from(groups).sort();
-        const colors = generateColorPalette(groupArray.length);
-        
-        groupArray.forEach((group, index) => {
-          colorCaches.group_name2.set(group, colors[index]);
-        });
-      }
-      break;
-    }
+    levelArray.forEach((level, index) => {
+      colorCaches.hierarchy_level.set(level, colors[index]);
+    });
+  }
+  
+  // Tenure Status
+  if (colorCaches.tenure_status.size === 0) {
+    const statuses = new Set();
+    cy.nodes().forEach(n => {
+      const status = n.data('tenure_status');
+      if (status) statuses.add(status);
+    });
     
-    case 'location': {
-      if (colorCaches.location.size === 0) {
-        const locations = new Set();
-        cy.nodes().forEach(n => {
-          const loc = n.data('location');
-          if (loc) locations.add(loc);
-        });
-        
-        const locationArray = Array.from(locations).sort();
-        const colors = generateColorPalette(locationArray.length);
-        
-        locationArray.forEach((loc, index) => {
-          colorCaches.location.set(loc, colors[index]);
-        });
-      }
-      break;
-    }
+    const statusArray = Array.from(statuses).sort();
+    const colors = generateColorPalette(statusArray.length);
+    
+    statusArray.forEach((status, index) => {
+      colorCaches.tenure_status.set(status, colors[index]);
+    });
+  }
+  
+  // Group Name 1
+  if (colorCaches.group_name1.size === 0) {
+    const groups = new Set();
+    cy.nodes().forEach(n => {
+      const group = n.data('group_name1');
+      if (group) groups.add(group);
+    });
+    
+    const groupArray = Array.from(groups).sort();
+    const colors = generateColorPalette(groupArray.length);
+    
+    groupArray.forEach((group, index) => {
+      colorCaches.group_name1.set(group, colors[index]);
+    });
+  }
+  
+  // Group Name 2
+  if (colorCaches.group_name2.size === 0) {
+    const groups = new Set();
+    cy.nodes().forEach(n => {
+      const group = n.data('group_name2');
+      if (group) groups.add(group);
+    });
+    
+    const groupArray = Array.from(groups).sort();
+    const colors = generateColorPalette(groupArray.length);
+    
+    groupArray.forEach((group, index) => {
+      colorCaches.group_name2.set(group, colors[index]);
+    });
+  }
+  
+  // Location
+  if (colorCaches.location.size === 0) {
+    const locations = new Set();
+    cy.nodes().forEach(n => {
+      const loc = n.data('location');
+      if (loc) locations.add(loc);
+    });
+    
+    const locationArray = Array.from(locations).sort();
+    const colors = generateColorPalette(locationArray.length);
+    
+    locationArray.forEach((loc, index) => {
+      colorCaches.location.set(loc, colors[index]);
+    });
   }
 };
 
@@ -184,38 +170,26 @@ const getNodeColor = (node, colorBy, cy) => {
   const data = node.data();
   
   switch (colorBy) {
-    case 'department': {
-      initializeColorCache(cy, 'department');
+    case 'department':
       return colorCaches.department.get(data.department) || '#6B7280';
-    }
     
     case 'gender':
       return data.gender === 'Male' ? '#3B82F6' : data.gender === 'Female' ? '#EC4899' : '#6B7280';
     
-    case 'hierarchy_level': {
-      initializeColorCache(cy, 'hierarchy_level');
+    case 'hierarchy_level':
       return colorCaches.hierarchy_level.get(data.hierarchy_level) || '#6B7280';
-    }
     
-    case 'tenure_status': {
-      initializeColorCache(cy, 'tenure_status');
+    case 'tenure_status':
       return colorCaches.tenure_status.get(data.tenure_status) || '#6B7280';
-    }
     
-    case 'group_name1': {
-      initializeColorCache(cy, 'group_name1');
+    case 'group_name1':
       return colorCaches.group_name1.get(data.group_name1) || '#6B7280';
-    }
     
-    case 'group_name2': {
-      initializeColorCache(cy, 'group_name2');
+    case 'group_name2':
       return colorCaches.group_name2.get(data.group_name2) || '#6B7280';
-    }
     
-    case 'location': {
-      initializeColorCache(cy, 'location');
+    case 'location':
       return colorCaches.location.get(data.location) || '#6B7280';
-    }
     
     case 'rating': {
       const rating = data.rating || 5;
@@ -240,12 +214,7 @@ const resetAllColors = () => {
 };
 
 // Get legend items for current color scheme
-const getLegendItems = (colorBy, cy) => {
-  // Initialize the cache first if cy is available
-  if (cy) {
-    initializeColorCache(cy, colorBy);
-  }
-  
+const getLegendItems = (colorBy) => {
   switch (colorBy) {
     case 'department':
       return Array.from(colorCaches.department.entries()).map(([key, color]) => ({ label: key, color }));
@@ -429,10 +398,8 @@ function Home() {
   }, []);
 
   const updateLegend = () => {
-    if (cyRef.current) {
-      const items = getLegendItems(nodeColorBy, cyRef.current);
-      setLegendItems(items);
-    }
+    const items = getLegendItems(nodeColorBy);
+    setLegendItems(items);
   };
 
   const createSampleGraph = async () => {
@@ -637,6 +604,37 @@ function Home() {
       elements: elements,
       style: [
         {
+          selector: 'node',
+          style: {
+            'background-color': (node) => getNodeColor(node, nodeColorBy, cyRef.current),
+            'label': (node) => getNodeLabel(node, nodeLabelBy),
+            'width': (node) => getNodeSize(node, nodeSizeBy),
+            'height': (node) => getNodeSize(node, nodeSizeBy),
+            'font-size': '10px',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'color': '#ffffff',
+            'text-outline-color': '#000000',
+            'text-outline-width': 1,
+            'border-width': 2,
+            'border-color': '#ffffff',
+            'text-wrap': 'ellipsis',
+            'text-max-width': '60px'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#94A3B8',
+            'target-arrow-color': '#94A3B8',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'arrow-scale': 0.6,
+            'opacity': 0.7
+          }
+        },
+        {
           selector: 'node:selected',
           style: {
             'border-color': '#FCD34D',
@@ -647,15 +645,16 @@ function Home() {
       layout: getLayoutConfig(graphLayout)
     });
 
+    // Initialize ALL color caches immediately after cytoscape is created
+    initializeAllColorCaches(cyRef.current);
+    
+    // Update legend immediately
+    updateLegend();
+
     cyRef.current.on('tap', 'node', (evt) => {
       const node = evt.target;
       console.log('Selected node:', node.data());
     });
-
-    // Update legend after graph is initialized
-    setTimeout(() => {
-      updateLegend();
-    }, 100);
   };
 
   const handleQuery = async (e) => {
@@ -1219,6 +1218,8 @@ function Home() {
                     setNodeColorBy(value);
                     if (cyRef.current) {
                       resetAllColors();
+                      // Re-initialize all caches with new color scheme
+                      initializeAllColorCaches(cyRef.current);
                       cyRef.current.style().selector('node').style({
                         'background-color': (node) => getNodeColor(node, value, cyRef.current)
                       }).update();
